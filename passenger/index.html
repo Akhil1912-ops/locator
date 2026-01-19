@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bus Tracker - Passenger</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      padding: 16px;
+      background: #1e293b;
+      color: #fff;
+      border-bottom: 1px solid #334155;
+    }
+
+    .bus-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .status-text {
+      font-size: 14px;
+      opacity: 0.8;
+      color: #94a3b8;
+    }
+
+    .container {
+      padding: 16px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .status-card {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      border: 1px solid #334155;
+    }
+
+    .timeline-wrapper {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid #334155;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .timeline-header h3 {
+      font-size: 14px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .timeline-container {
+      position: relative;
+      min-height: 400px;
+    }
+
+    .timeline-subtext {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .timeline-preview-line {
+      position: relative;
+      padding-left: 60px;
+      min-height: 300px;
+    }
+
+    .timeline-preview-vertical-line {
+      position: absolute;
+      left: 20px;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: #2563eb;
+      border-radius: 2px;
+    }
+
+    .timeline-preview-stop {
+      position: absolute;
+      width: calc(100% - 60px);
+      padding-left: 20px;
+    }
+
+    .timeline-preview-stop-dot {
+      position: absolute;
+      left: -50px;
+      top: 8px;
+      width: 12px;
+      height: 12px;
+      background: #2563eb;
+      border: 3px solid #1e293b;
+      border-radius: 50%;
+      z-index: 2;
+    }
+
+    .timeline-preview-stop-dot.passed {
+      background: #16a34a;
+    }
+
+    .timeline-preview-stop-dot.current {
+      background: #fbbf24;
+      box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2);
+    }
+
+    .timeline-preview-stop-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .timeline-preview-stop-details {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .bus-marker {
+      position: absolute;
+      left: -58px;
+      width: 24px;
+      height: 24px;
+      background: #2563eb;
+      border: 3px solid #1e293b;
+      border-radius: 50%;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: top 0.3s ease;
+    }
+
+    .bus-marker::before {
+      content: '🚌';
+      font-size: 14px;
+    }
+
+    .bus-marker-label {
+      position: absolute;
+      left: -10px;
+      top: 30px;
+      font-size: 11px;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+
+    .stop-content {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .time-column {
+      text-align: right;
+    }
+
+    .scheduled-time {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 2px;
+    }
+
+    .eta-time {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .eta-time.delayed {
+      color: #f87171;
+    }
+
+    .eta-time.on_time {
+      color: #4ade80;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+
+    .badge.on_time {
+      background: #16a34a;
+      color: #fff;
+    }
+
+    .badge.delayed {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .badge.early {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #94a3b8;
+    }
+
+    .error {
+      background: #7f1d1d;
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="bus-title" id="busTitle">Bus —</div>
+    <div class="status-text" id="statusText">Last seen —</div>
+  </header>
+  <div class="container">
+    <div class="status-card" id="currentStatus">Loading bus status…</div>
+    <div class="timeline-wrapper" id="timelineWrapper">
+      <div class="timeline-header">
+        <div>
+          <h3>Route Timeline Preview</h3>
+          <div class="timeline-subtext" id="timelineSubtext">Loading schedule…</div>
+        </div>
+      </div>
+      <div class="timeline-container" id="timelineContainer">
+        <div class="loading">Loading route...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Backend API URL - update this if your IP changes (override with ?api=... to persist)
+    const normalizeApiBase = (value) => value ? value.trim().replace(/\/+$/, '') : value;
+    const apiParam = new URLSearchParams(window.location.search).get('api');
+    if (apiParam) {
+      localStorage.setItem('apiBase', apiParam);
+    }
+    const storedApiBase = localStorage.getItem('apiBase');
+    const apiBase = normalizeApiBase(
+      storedApiBase || (
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? 'http://localhost:8000'
+          : 'http://10.61.199.218:8000'
+      )
+    );
+    
+    // Support tracking codes and bus numbers
+    // URL formats:
+    // 1) /passenger/index.html?code=abc123  (recommended)
+    // 2) /passenger/track/abc123           (legacy)
+    // 3) /passenger/index.html?bus=123     (fallback)
+    let busNumber = null;
+    let ws = null;
+    let currentStatus = null;
+    let currentStops = [];
+    
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get("code");
+    const busParam = params.get("bus");
+    
+    // Check if URL path contains a tracking code (legacy path format)
+    const pathParts = window.location.pathname.split('/').filter(p => p);
+    const lastPathPart = pathParts[pathParts.length - 1];
+    const isTrackingCodePath = pathParts.includes('track') && lastPathPart && lastPathPart !== 'track' && lastPathPart !== 'index.html';
+    
+    const resolveTrackingCode = (trackingCode) => {
+      fetch(`${apiBase}/passenger/track/${trackingCode}`)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error("Invalid tracking code");
+          }
+          return res.json();
+        })
+        .then(data => {
+          busNumber = data.bus_number;
+          document.getElementById("busTitle").textContent = `Bus ${busNumber}`;
+          initializeApp();
+        })
+        .catch(err => {
+          console.error("Error resolving tracking code:", err);
+          document.getElementById("currentStatus").innerHTML = 
+            '<div class="error">❌ Invalid tracking code. Please check your link.</div>';
+        });
+    };
+    
+    if (codeParam) {
+      resolveTrackingCode(codeParam);
+    } else if (isTrackingCodePath) {
+      resolveTrackingCode(lastPathPart);
+    } else if (busParam) {
+      busNumber = busParam;
+      document.getElementById("busTitle").textContent = `Bus ${busNumber}`;
+      initializeApp();
+    } else {
+      document.getElementById("currentStatus").innerHTML = 
+        '<div class="error">❌ No bus number or tracking code provided. Please use a valid tracking link.</div>';
+      busNumber = null;
+    }
+
+    function initializeApp() {
+      if (!busNumber) return;
+      
+      // Initialize WebSocket and start refresh
+      refresh();
+      connectWebSocket();
+      
+      // Set up periodic refresh
+      setInterval(() => {
+        refresh();
+      }, 10000);
+    }
+
+    // Haversine formula to calculate distance between two GPS coordinates (in km)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    // Calculate cumulative distances from start
+    function calculateRouteDistances(stops) {
+      if (stops.length < 2) return [];
+      const distances = [0]; // First stop is at distance 0
+      for (let i = 1; i < stops.length; i++) {
+        const prev = stops[i - 1];
+        const curr = stops[i];
+        if (prev.latitude && prev.longitude && curr.latitude && curr.longitude) {
+          const dist = calculateDistance(prev.latitude, prev.longitude, curr.latitude, curr.longitude);
+          distances.push(distances[i - 1] + dist);
+        } else {
+          distances.push(distances[i - 1] + 1); // Fallback: 1km per stop
+        }
+      }
+      return distances;
+    }
+
+    // Find bus position on timeline (percentage and between which stops)
+    function calculateBusPosition(busLat, busLon, stops, routeDistances) {
+      if (!busLat || !busLon || stops.length < 2 || !routeDistances.length) {
+        return { percentage: 0, segmentIndex: 0 };
+      }
+
+      const totalDistance = routeDistances[routeDistances.length - 1];
+      if (totalDistance === 0) return { percentage: 0, segmentIndex: 0 };
+
+      // Find which segment the bus is in
+      let minDist = Infinity;
+      let bestSegment = 0;
+      let busDistanceFromStart = 0;
+
+      for (let i = 0; i < stops.length - 1; i++) {
+        const stop1 = stops[i];
+        const stop2 = stops[i + 1];
+        if (!stop1.latitude || !stop1.longitude || !stop2.latitude || !stop2.longitude) continue;
+
+        // Distance from bus to each stop in this segment
+        const distToStop1 = calculateDistance(busLat, busLon, stop1.latitude, stop1.longitude);
+        const distToStop2 = calculateDistance(busLat, busLon, stop2.latitude, stop2.longitude);
+        const segmentLength = calculateDistance(stop1.latitude, stop1.longitude, stop2.latitude, stop2.longitude);
+
+        // If bus is close to this segment
+        if (distToStop1 + distToStop2 < segmentLength * 1.5) {
+          // Project bus position onto this segment
+          const distAlongSegment = (distToStop1 < distToStop2) 
+            ? distToStop1 
+            : segmentLength - distToStop2;
+          const distanceFromStart = routeDistances[i] + distAlongSegment;
+          
+          if (distanceFromStart < minDist) {
+            minDist = distanceFromStart;
+            bestSegment = i;
+            busDistanceFromStart = distanceFromStart;
+          }
+        }
+      }
+
+      // If no segment found, find closest stop
+      if (minDist === Infinity) {
+        for (let i = 0; i < stops.length; i++) {
+          if (!stops[i].latitude || !stops[i].longitude) continue;
+          const dist = calculateDistance(busLat, busLon, stops[i].latitude, stops[i].longitude);
+          if (dist < minDist) {
+            minDist = dist;
+            bestSegment = Math.max(0, i - 1);
+            busDistanceFromStart = routeDistances[i];
+          }
+        }
+      }
+
+      const percentage = totalDistance > 0 ? (busDistanceFromStart / totalDistance) * 100 : 0;
+      return { percentage: Math.max(0, Math.min(100, percentage)), segmentIndex: bestSegment };
+    }
+
+    function fmtTime(ts) {
+      if (!ts) return '—';
+      const d = new Date(ts);
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function fmtDelay(mins) {
+      if (mins === 0) return "On time";
+      return mins > 0 ? `+${mins} min` : `${mins} min`;
+    }
+
+    function fmtLastSeen(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}m ${s}s ago`;
+    }
+
+    function renderTimeline(status, stops) {
+      const container = document.getElementById("timelineContainer");
+      if (!stops || stops.length === 0) {
+        container.innerHTML = '<div class="loading">No stops available</div>';
+        const subtext = document.getElementById("timelineSubtext");
+        if (subtext) {
+          subtext.textContent = "No schedule available";
+        }
+        return;
+      }
+
+      currentStops = stops;
+      const routeDistances = calculateRouteDistances(stops);
+      let busPosition = { percentage: 0, segmentIndex: 0 };
+
+      if (status && status.latitude && status.longitude) {
+        busPosition = calculateBusPosition(status.latitude, status.longitude, stops, routeDistances);
+      }
+
+      const stopHeight = 60;
+      const minStopSpacingPx = 113; // ~3cm at 96dpi (3 * 37.8px)
+      const totalHeight = Math.max(400, (stops.length - 1) * minStopSpacingPx + stopHeight);
+      const availableHeight = stops.length > 1 ? (stops.length - 1) * minStopSpacingPx : 0;
+
+      // Determine which stops have been passed
+      const busDistance = (busPosition.percentage / 100) * (routeDistances[routeDistances.length - 1] || 1);
+      let passedStops = 0;
+      for (let i = 0; i < routeDistances.length; i++) {
+        if (routeDistances[i] <= busDistance) {
+          passedStops = i;
+        }
+      }
+
+      container.style.minHeight = `${totalHeight}px`;
+
+      const startTime = stops[0]?.scheduled_time || null;
+      const subtext = document.getElementById("timelineSubtext");
+      if (subtext) {
+        subtext.textContent = startTime
+          ? `Start Time: ${fmtTime(startTime)}`
+          : "⚠️ Start time not set";
+      }
+
+      let html = `
+        <div class="timeline-preview-line" style="min-height: ${totalHeight}px; position: relative; padding-bottom: ${stopHeight / 2}px; overflow: visible;">
+          <div class="timeline-preview-vertical-line" style="height: ${availableHeight}px;"></div>
+      `;
+
+      // Bus marker
+      if (status && status.latitude && status.longitude) {
+        const busTop = (busPosition.percentage / 100) * availableHeight;
+        html += `
+          <div class="bus-marker" style="top: ${busTop}px;">
+            <span class="bus-marker-label">Live</span>
+          </div>
+        `;
+      }
+
+      // Render stops
+      stops.forEach((stop, idx) => {
+        const isPassed = idx < passedStops;
+        const isCurrent = idx === passedStops;
+        const isFirst = idx === 0;
+        const isLast = idx === stops.length - 1;
+        const distance = routeDistances[idx] || 0;
+        const stopTop = stops.length > 1 ? idx * minStopSpacingPx : 0;
+        const dotClass = `timeline-preview-stop-dot ${isPassed ? 'passed' : ''} ${isCurrent ? 'current' : ''}`;
+
+        html += `
+          <div class="timeline-preview-stop" style="top: ${stopTop}px;">
+            <div class="${dotClass}" style="background: ${isFirst ? '#16a34a' : isLast ? '#dc2626' : '#2563eb'};"></div>
+            <div class="stop-content">
+              <div>
+                <div class="timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</div>
+                <div class="timeline-preview-stop-details">
+                  Scheduled: ${fmtTime(stop.scheduled_time)} · ETA: ${fmtTime(stop.eta)} · ${fmtDelay(stop.delay_minutes)} · ${distance.toFixed(1)} km
+                </div>
+              </div>
+              <div class="time-column">
+                <div class="scheduled-time">Scheduled</div>
+                <div class="eta-time ${stop.status}">${fmtTime(stop.eta)}</div>
+                <div class="badge ${stop.status}">${fmtDelay(stop.delay_minutes)}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    async function fetchStatus() {
+      const res = await fetch(`${apiBase}/passenger/bus/${busNumber}`);
+      if (!res.ok) throw new Error("Failed to load bus status");
+      return res.json();
+    }
+
+    async function fetchStops() {
+      const res = await fetch(`${apiBase}/passenger/bus/${busNumber}/stops`);
+      if (!res.ok) throw new Error("Failed to load stops");
+      const data = await res.json();
+      return data.stops || [];
+    }
+
+    // Track notified stops to avoid duplicate notifications
+    let notifiedStops = new Set();
+    
+    function checkApproachingStop(status, stops) {
+      if (!status || !status.latitude || !status.longitude || !stops || stops.length === 0) {
+        return;
+      }
+      
+      const routeDistances = calculateRouteDistances(stops);
+      const busPosition = calculateBusPosition(status.latitude, status.longitude, stops, routeDistances);
+      const busDistance = (busPosition.percentage / 100) * (routeDistances[routeDistances.length - 1] || 1);
+      
+      // Check each upcoming stop (within 2km)
+      stops.forEach((stop, idx) => {
+        if (!stop.latitude || !stop.longitude) return;
+        
+        const stopDistance = routeDistances[idx] || 0;
+        const distanceToStop = Math.abs(stopDistance - busDistance);
+        
+        // If bus is within 2km of a stop and hasn't been notified yet
+        if (distanceToStop <= 2 && stopDistance >= busDistance && !notifiedStops.has(stop.stop_name)) {
+          // Request notification permission and show notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(`🚌 Bus Approaching ${stop.stop_name}`, {
+              body: `The bus is approximately ${distanceToStop.toFixed(1)} km away. ETA: ${fmtTime(stop.eta)}`,
+              icon: '🚌',
+              tag: `stop-${stop.stop_name}`,
+            });
+            notifiedStops.add(stop.stop_name);
+          } else if ('Notification' in window && Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                new Notification(`🚌 Bus Approaching ${stop.stop_name}`, {
+                  body: `The bus is approximately ${distanceToStop.toFixed(1)} km away. ETA: ${fmtTime(stop.eta)}`,
+                  icon: '🚌',
+                  tag: `stop-${stop.stop_name}`,
+                });
+                notifiedStops.add(stop.stop_name);
+              }
+            });
+          }
+        }
+      });
+    }
+    
+    function checkRouteCompletion(status, stops) {
+      if (!status || !stops || stops.length === 0) return false;
+      
+      const routeDistances = calculateRouteDistances(stops);
+      const busPosition = calculateBusPosition(status.latitude, status.longitude, stops, routeDistances);
+      
+      // If bus is at or past the final stop (within 1km)
+      const finalStopDistance = routeDistances[routeDistances.length - 1] || 0;
+      const busDistance = (busPosition.percentage / 100) * finalStopDistance;
+      
+      if (busDistance >= finalStopDistance - 1) {
+        return true;
+      }
+      return false;
+    }
+
+    function updateUI(status, stops) {
+      const statusTextEl = document.getElementById("statusText");
+      const statusCard = document.getElementById("currentStatus");
+
+      if (status) {
+        const statusLabel = status.status ? status.status.replace('_', ' ') : 'live';
+        statusTextEl.textContent = `Last seen ${fmtLastSeen(
+          status.last_seen_seconds
+        )} · ${fmtDelay(status.running_delay_minutes)} · ${statusLabel}`;
+
+        // Check route completion
+        const isCompleted = checkRouteCompletion(status, stops || currentStops);
+        if (isCompleted) {
+          statusCard.textContent = `✅ Route Completed - Bus has reached final stop`;
+        } else {
+          const nextStopName = status.next_stop || "—";
+          const nextStop = (stops || currentStops || []).find(s => s.stop_name === nextStopName);
+          const etaText = nextStop ? fmtTime(nextStop.eta) : "—";
+          statusCard.innerHTML = `
+            <div><strong>Current stop:</strong> ${status.current_stop || "—"}</div>
+            <div><strong>Next stop:</strong> ${nextStopName} · ETA ${etaText}</div>
+          `;
+        }
+
+        currentStatus = status;
+
+        // Check for approaching stops and send notifications
+        if (stops || currentStops.length > 0) {
+          checkApproachingStop(status, stops || currentStops);
+        }
+      } else {
+        statusTextEl.textContent = "Live status unavailable";
+        statusCard.textContent = "Bus not tracking yet.";
+      }
+
+      if (stops) {
+        renderTimeline(currentStatus || status, stops);
+      }
+    }
+
+    async function refresh() {
+      try {
+        const [statusResult, stopsResult] = await Promise.allSettled([fetchStatus(), fetchStops()]);
+        const status = statusResult.status === "fulfilled" ? statusResult.value : null;
+        const stops = stopsResult.status === "fulfilled" ? stopsResult.value : null;
+        if (stopsResult.status === "rejected") {
+          throw stopsResult.reason;
+        }
+        updateUI(status, stops);
+      } catch (err) {
+        document.getElementById("currentStatus").textContent = "Failed to load data.";
+        document.getElementById("timelineContainer").innerHTML = `<div class="error">${err.message}</div>`;
+        console.error(err);
+      }
+    }
+
+    function connectWebSocket() {
+      let wsHost = apiBase.replace(/^https?:/, '');
+      if (wsHost.includes('localhost') && window.location.hostname !== 'localhost') {
+        wsHost = wsHost.replace('localhost', window.location.hostname);
+      }
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}${wsHost}/passenger/ws/bus/${busNumber}`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send('ping');
+          }
+        }, 30000);
+      };
+
+      ws.onmessage = (event) => {
+        if (event.data === 'pong') {
+          return;
+        }
+
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'location_update') {
+            currentStatus = {
+              latitude: data.latitude,
+              longitude: data.longitude,
+              recorded_at: data.recorded_at,
+              last_seen_seconds: data.last_seen_seconds,
+              running_delay_minutes: currentStatus?.running_delay_minutes || 0,
+              status: data.status,
+              current_stop: currentStatus?.current_stop,
+              next_stop: currentStatus?.next_stop,
+            };
+            updateUI(currentStatus, currentStops);
+            fetchStops().then(stops => updateUI(null, stops));
+          } else if (data.type === 'delay_update') {
+            if (currentStatus) {
+              currentStatus.running_delay_minutes = data.delay_minutes;
+              currentStatus.current_stop = data.current_stop;
+              currentStatus.next_stop = data.next_stop;
+              updateUI(currentStatus, null);
+              fetchStops().then(stops => updateUI(null, stops));
+            }
+          }
+        } catch (err) {
+          if (event.data !== 'pong') {
+            console.error('WebSocket message error:', err, event.data);
+          }
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected, reconnecting...');
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+
+    // App initialization is handled by initializeApp() after busNumber is resolved
+  </script>
+</body>
+
+</html>
