@@ -1,0 +1,2622 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Tracker - Admin Panel</title>
+    <!-- Leaflet removed - using vertical timeline instead -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: #1e293b;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .login-section {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-section h2 {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        /* Hide spinner controls on number inputs - allow direct typing */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        /* Disable mouse wheel scrolling on number inputs */
+        input[type="number"]:focus {
+            outline: none;
+        }
+
+        /* Disable mouse wheel scrolling on number inputs */
+        input[type="number"]:focus {
+            outline: none;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        .btn-success {
+            background: #16a34a;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #15803d;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #4b5563;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            font-size: 20px;
+        }
+
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        #stopModal {
+            z-index: 2000;
+            /* Higher z-index to appear above route modal */
+        }
+
+        /* Ensure Google Places Autocomplete dropdown appears above modals */
+        .pac-container {
+            z-index: 3000 !important;
+            font-family: inherit;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .pac-item {
+            padding: 10px;
+            cursor: pointer;
+            border-top: 1px solid #e6e6e6;
+        }
+
+        .pac-item:first-child {
+            border-top: none;
+        }
+
+        .pac-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .pac-item-selected {
+            background-color: #e8f0fe;
+        }
+
+        .modal.active {
+            display: flex !important;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal:not(.active) {
+            display: none !important;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .modal-content.large {
+            max-width: 900px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .stops-list {
+            margin-top: 20px;
+        }
+
+        .stop-item {
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stop-info {
+            flex: 1;
+        }
+
+        .stop-info h4 {
+            margin-bottom: 5px;
+        }
+
+        .stop-info p {
+            color: #666;
+            font-size: 14px;
+            margin: 2px 0;
+        }
+
+        .route-timeline-preview {
+            min-height: 400px;
+            width: 100%;
+            border-radius: 4px;
+            margin-top: 15px;
+            background: #1e293b;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .timeline-preview-line {
+            position: relative;
+            padding-left: 60px;
+            min-height: 300px;
+        }
+
+        .timeline-preview-vertical-line {
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #2563eb;
+            border-radius: 2px;
+        }
+
+        .timeline-preview-stop {
+            position: absolute;
+            width: calc(100% - 60px);
+            padding-left: 20px;
+        }
+
+        .timeline-preview-stop-dot {
+            position: absolute;
+            left: -50px;
+            top: 8px;
+            width: 12px;
+            height: 12px;
+            background: #2563eb;
+            border: 3px solid #1e293b;
+            border-radius: 50%;
+            z-index: 2;
+        }
+
+        .timeline-preview-stop-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .timeline-preview-stop-details {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .refresh-btn {
+            background: #6b7280;
+            padding: 8px 16px;
+        }
+
+        .refresh-btn:hover:not(:disabled) {
+            background: #4b5563;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Bus Tracker - Admin Panel</h1>
+        <div class="header-actions" id="headerActions" style="display: none;">
+            <button class="refresh-btn btn-secondary" onclick="refreshAll()">🔄 Refresh</button>
+            <button class="btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Login Section -->
+        <div class="login-section" id="loginSection">
+            <h2>Admin Login</h2>
+            <div id="loginError" class="error" style="display: none;"></div>
+            <div class="form-group">
+                <label>Admin Password</label>
+                <input type="password" id="adminPassword" placeholder="Enter admin password">
+            </div>
+            <button onclick="login()" id="loginButton">Login</button>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="dashboard" id="dashboard">
+            <!-- Statistics -->
+            <div class="stats" id="stats">
+                <div class="loading">Loading statistics...</div>
+            </div>
+
+            <!-- Buses Management -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Buses</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" class="search-box" id="busSearch" placeholder="Search buses..."
+                            oninput="filterBuses()">
+                        <button onclick="showAddBusModal()">+ Add Bus</button>
+                    </div>
+                </div>
+                <div id="busesTable">
+                    <div class="loading">Loading buses...</div>
+                </div>
+            </div>
+
+            <!-- Active Drivers -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Active Drivers</h2>
+                    <button class="refresh-btn btn-secondary btn-sm" onclick="loadActiveDrivers()">🔄 Refresh</button>
+                </div>
+                <div id="activeDriversTable">
+                    <div class="loading">Loading active drivers...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Bus Modal -->
+    <div class="modal" id="busModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="busModalTitle">Add New Bus</h2>
+                <button class="close-btn" onclick="closeModal('busModal')">&times;</button>
+            </div>
+            <div id="busModalError" class="error" style="display: none;"></div>
+            <div id="busModalSuccess" class="success" style="display: none;"></div>
+            <div class="form-group">
+                <label>Bus Number</label>
+                <input type="text" id="busNumber" placeholder="e.g., 789" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="busPassword" placeholder="Driver password">
+                <small style="color: #666; font-size: 12px;">Leave empty to keep current password (when editing)</small>
+            </div>
+            <div class="form-group">
+                <label>Route Name</label>
+                <input type="text" id="busRouteName" placeholder="e.g., Route C">
+            </div>
+            <div class="form-group">
+                <label>Start Time (When bus departs from start point daily)</label>
+                <input type="time" id="busStartTime" required>
+                <small style="color: #666; font-size: 12px;">Daily departure time (e.g., 06:00 for 6 AM, 18:00 for 6
+                    PM). This is the reference time for calculating arrival times at stops.</small>
+            </div>
+
+            <div style="border-top: 2px solid #e5e7eb; margin: 20px 0; padding-top: 20px;">
+                <h3 style="margin-bottom: 15px; color: #1e293b;">Route Points</h3>
+
+                <div class="form-group">
+                    <label>Start Point - Search Location</label>
+                    <input type="text" id="startLocationSearch"
+                        placeholder="Search start location (e.g., Mumbai Central)">
+                    <small style="color: #666; font-size: 12px;">Type and select from suggestions</small>
+                </div>
+                <div class="form-group">
+                    <label>Start Point Name</label>
+                    <input type="text" id="startPointName" placeholder="e.g., Mumbai Central Station">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Latitude</label>
+                        <input type="number" id="startLat" step="0.000001" placeholder="19.0760">
+                        <small style="color: #666; font-size: 12px;">Can be auto-filled or entered manually</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Start Longitude</label>
+                        <input type="number" id="startLng" step="0.000001" placeholder="72.8777">
+                        <small style="color: #666; font-size: 12px;">Can be auto-filled or entered manually</small>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>End Point - Search Location</label>
+                    <input type="text" id="endLocationSearch" placeholder="Search end location (e.g., Andheri Station)">
+                    <small style="color: #666; font-size: 12px;">Type and select from suggestions</small>
+                </div>
+                <div class="form-group">
+                    <label>End Point Name</label>
+                    <input type="text" id="endPointName" placeholder="e.g., Andheri Station">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>End Latitude</label>
+                        <input type="number" id="endLat" step="0.000001" placeholder="19.1136">
+                        <small style="color: #666; font-size: 12px;">Can be auto-filled or entered manually</small>
+                    </div>
+                    <div class="form-group">
+                        <label>End Longitude</label>
+                        <input type="number" id="endLng" step="0.000001" placeholder="72.8697">
+                        <small style="color: #666; font-size: 12px;">Can be auto-filled or entered manually</small>
+                    </div>
+                </div>
+
+            </div>
+
+            <div style="border-top: 2px solid #e5e7eb; margin: 20px 0; padding-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #1e293b;">All Stops</h3>
+                    <button type="button" onclick="addIntermediateStop()"
+                        style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">+
+                        Add Intermediate Stop</button>
+                </div>
+                <div
+                    style="background: #f9fafb; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2563eb;">
+                    <strong style="color: #1e40af; font-size: 13px;">💡 How it works:</strong>
+                    <ul style="color: #1e3a8a; font-size: 12px; margin: 8px 0 0 20px; padding: 0;">
+                        <li>Start and End points are automatically added as first and last stops</li>
+                        <li>Click "+ Add Intermediate Stop" to add stops between start and end</li>
+                        <li>Stops are ordered by sequence number (1 = start, 2, 3... last = end)</li>
+                    </ul>
+                </div>
+                <div id="busStopsList" style="max-height: 400px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 20px; color: #666;">Stops will appear here. Add start and
+                        end points first.</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <select id="busStatus">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="saveBus()" id="saveBusBtn">Save</button>
+                <button class="btn-secondary" onclick="closeModal('busModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Route Management Modal -->
+    <div class="modal" id="routeModal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2 id="routeModalTitle">Route Management</h2>
+                <button class="close-btn" onclick="closeModal('routeModal')">&times;</button>
+            </div>
+            <div id="routeModalError" class="error" style="display: none;"></div>
+            <div id="routeModalSuccess" class="success" style="display: none;"></div>
+
+            <div class="form-group">
+                <label>Route Name</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="routeName" placeholder="e.g., Route A">
+                    <button onclick="saveRoute()">Save Route</button>
+                </div>
+            </div>
+
+            <div id="routeTimelinePreview"
+                style="background: #1e293b; border-radius: 8px; padding: 20px; min-height: 400px; color: #fff;">
+                <div class="loading" style="color: #94a3b8;">Route timeline preview will appear here</div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Stops</h3>
+                    <button onclick="showAddStopModal()" style="background: #16a34a; font-weight: 600;">+ Add
+                        Stop</button>
+                </div>
+                <div
+                    style="background: #f9fafb; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2563eb;">
+                    <strong style="color: #2563eb;">📍 How to add stops:</strong>
+                    <ol style="margin: 10px 0 0 20px; color: #666; font-size: 14px;">
+                        <li>Click "<strong>+ Add Stop</strong>" button above</li>
+                        <li>Search for location using the search box</li>
+                        <li>Select from suggestions (coordinates auto-fill)</li>
+                        <li>Enter stop name and sequence number</li>
+                        <li>Click "Save"</li>
+                    </ol>
+                </div>
+                <div id="stopsList" class="stops-list">
+                    <div class="loading">Loading stops...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monitor Bus Modal -->
+    <div class="modal" id="monitorModal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2 id="monitorModalTitle">Monitor Bus</h2>
+                <button class="close-btn" onclick="closeModal('monitorModal')">&times;</button>
+            </div>
+            <div id="monitorModalError" class="error" style="display: none;"></div>
+            <div id="monitorTimeline"
+                style="background: #1e293b; border-radius: 8px; padding: 20px; min-height: 500px;">
+                <div class="loading">Loading bus status...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Stop Modal -->
+    <div class="modal" id="stopModal" style="z-index: 2000;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2 id="stopModalTitle">Add Stop</h2>
+                <button class="close-btn" onclick="closeModal('stopModal')">&times;</button>
+            </div>
+            <div id="stopModalError" class="error" style="display: none;"></div>
+            <div id="stopModalSuccess" class="success" style="display: none;"></div>
+            <div
+                style="background: #eff6ff; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2563eb;">
+                <strong style="color: #1e40af;">💡 Tip:</strong> <span style="color: #1e3a8a; font-size: 14px;">Use the
+                    search box below to find locations. Type a place name and select from suggestions - coordinates will
+                    be filled automatically!</span>
+            </div>
+            <div class="form-group">
+                <label>Search Location (Type to search)</label>
+                <input type="text" id="locationSearch"
+                    placeholder="Search for a location (e.g., Mumbai Central Station)"
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <small style="color: #666; font-size: 12px; margin-top: 4px; display: block;">Start typing and select
+                    from suggestions. Coordinates will be filled automatically.</small>
+            </div>
+            <div class="form-group">
+                <label>Stop Name</label>
+                <input type="text" id="stopName" placeholder="e.g., Main Street">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Latitude</label>
+                    <input type="number" id="stopLat" step="0.000001" placeholder="19.0760">
+                    <small style="color: #666; font-size: 12px;">Can be filled automatically or entered manually</small>
+                </div>
+                <div class="form-group">
+                    <label>Longitude</label>
+                    <input type="number" id="stopLng" step="0.000001" placeholder="72.8777">
+                    <small style="color: #666; font-size: 12px;">Can be filled automatically or entered manually</small>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Sequence Order</label>
+                <input type="number" id="stopSequence" placeholder="1" min="1">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Scheduled Arrival (Minutes from Start)</label>
+                    <input type="number" id="stopArrival" placeholder="20" min="0" step="1">
+                    <small style="color: #666; font-size: 12px;">Time in minutes from start point (e.g., 20 = 20 minutes
+                        after start)</small>
+                </div>
+                <div class="form-group">
+                    <label>Scheduled Departure (Minutes from Start)</label>
+                    <input type="number" id="stopDeparture" placeholder="25" min="0" step="1">
+                    <small style="color: #666; font-size: 12px;">Time in minutes from start point (e.g., 25 = 25 minutes
+                        after start)</small>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="saveStop()" id="saveStopBtn">Save</button>
+                <button class="btn-secondary" onclick="closeModal('stopModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-detect API base URL (override with ?api=... to persist in this browser)
+        const normalizeApiBase = (value) => value ? value.trim().replace(/\/+$/, '') : value;
+        const apiParam = new URLSearchParams(window.location.search).get('api');
+        if (apiParam) {
+            localStorage.setItem('apiBase', apiParam);
+        }
+        const storedApiBase = localStorage.getItem('apiBase');
+        const API_BASE = normalizeApiBase(
+            storedApiBase || (
+                window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:8000'
+                    : 'http://10.61.199.218:8000'
+            )
+        );
+        let adminPassword = '';
+        let currentBusNumber = null;
+        let currentRoute = null;
+        let autoRefreshInterval = null;
+        let placesAutocomplete = null;
+        let startPlacesAutocomplete = null;
+        let endPlacesAutocomplete = null;
+        let googleMapsLoaded = false;
+        let busStops = []; // Array to store all stops for the bus form
+        let stopAutocompleteInstances = {}; // Store autocomplete instances for each stop
+
+        // Google Maps API Key
+        const GOOGLE_MAPS_API_KEY = 'AIzaSyCwh57ItDj_8kyKWmY8HgHJgirt9OSkXxE';
+
+        // Load Google Maps Places API
+        function loadGoogleMaps() {
+            if (googleMapsLoaded) return;
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`;
+            script.async = true;
+            script.defer = true;
+            script.onerror = function () {
+                console.error('Failed to load Google Maps API');
+                googleMapsLoaded = false;
+            };
+            document.head.appendChild(script);
+        }
+
+        // Initialize Google Maps when loaded
+        window.initGoogleMaps = function () {
+            googleMapsLoaded = true;
+            console.log('Google Maps Places API loaded');
+        };
+
+        async function login() {
+            try {
+                const password = document.getElementById('adminPassword').value;
+                if (!password) {
+                    showError('loginError', 'Please enter password');
+                    return;
+                }
+
+                // Show loading state
+                const loginBtn = document.getElementById('loginButton') || document.querySelector('#loginSection button');
+                const originalBtnText = loginBtn ? loginBtn.textContent : 'Login';
+                if (loginBtn) {
+                    loginBtn.disabled = true;
+                    loginBtn.textContent = 'Logging in...';
+                }
+                document.getElementById('loginError').style.display = 'none';
+
+                adminPassword = password;
+                await loadDashboard();
+            } catch (err) {
+                console.error('Login error:', err);
+                showError('loginError', `Login failed: ${err.message || 'Unknown error'}. Check browser console (F12) for details.`);
+                const loginBtn = document.getElementById('loginButton') || document.querySelector('#loginSection button');
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Login';
+                }
+            }
+        }
+
+        function logout() {
+            adminPassword = '';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('dashboard').classList.remove('active');
+            document.getElementById('headerActions').style.display = 'none';
+            document.getElementById('adminPassword').value = '';
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        function getHeaders() {
+            return {
+                'X-Admin-Password': adminPassword,
+                'Content-Type': 'application/json'
+            };
+        }
+
+        async function loadDashboard() {
+            try {
+                console.log('Attempting login to:', `${API_BASE}/admin/stats`);
+                console.log('Using password:', adminPassword ? '***' : 'none');
+
+                const statsRes = await fetch(`${API_BASE}/admin/stats`, {
+                    headers: getHeaders(),
+                    method: 'GET'
+                });
+
+                console.log('Response status:', statsRes.status);
+
+                if (!statsRes.ok) {
+                    if (statsRes.status === 401) {
+                        adminPassword = ''; // Clear password on failure
+                        showError('loginError', 'Invalid admin password');
+                        throw new Error('Invalid admin password');
+                    }
+                    const errorText = await statsRes.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`Failed to load dashboard (${statsRes.status}): ${errorText}`);
+                }
+
+                const stats = await statsRes.json();
+                console.log('Login successful, stats:', stats);
+
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('dashboard').classList.add('active');
+                document.getElementById('headerActions').style.display = 'flex';
+
+                await Promise.all([
+                    loadStats(),
+                    loadBuses(),
+                    loadActiveDrivers()
+                ]);
+
+                // Auto-refresh active drivers every 30 seconds
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                }
+                autoRefreshInterval = setInterval(loadActiveDrivers, 30000);
+            } catch (err) {
+                console.error('Login error:', err);
+                adminPassword = ''; // Clear password on failure
+                throw err; // Re-throw to be caught by login() function
+            }
+        }
+
+        async function refreshAll() {
+            await Promise.all([
+                loadStats(),
+                loadBuses(),
+                loadActiveDrivers()
+            ]);
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/stats`, {
+                    headers: getHeaders()
+                });
+                const stats = await res.json();
+
+                document.getElementById('stats').innerHTML = `
+                    <div class="stat-card">
+                        <h3>Total Buses</h3>
+                        <div class="value">${stats.total_buses}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Active Buses</h3>
+                        <div class="value">${stats.active_buses}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Tracking Now</h3>
+                        <div class="value">${stats.tracking_buses || 0}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Active Drivers</h3>
+                        <div class="value">${stats.active_drivers}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>On-Time Performance</h3>
+                        <div class="value" style="color: ${stats.on_time_percentage >= 80 ? '#4ade80' : stats.on_time_percentage >= 60 ? '#fbbf24' : '#f87171'};">${stats.on_time_percentage || 0}%</div>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">${stats.on_time_count || 0} / ${stats.total_tracked_buses || 0} buses</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Avg Delay</h3>
+                        <div class="value" style="color: ${Math.abs(stats.average_delay_minutes || 0) <= 2 ? '#4ade80' : Math.abs(stats.average_delay_minutes || 0) <= 5 ? '#fbbf24' : '#f87171'};">${stats.average_delay_minutes >= 0 ? '+' : ''}${stats.average_delay_minutes || 0} min</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Routes Configured</h3>
+                        <div class="value">${stats.buses_with_routes || 0}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Locations</h3>
+                        <div class="value">${stats.total_locations}</div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error('Error loading stats:', err);
+            }
+        }
+
+        let allBuses = [];
+
+        async function loadBuses() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/buses`, {
+                    headers: getHeaders()
+                });
+                allBuses = await res.json();
+                renderBuses();
+            } catch (err) {
+                console.error('Error loading buses:', err);
+                document.getElementById('busesTable').innerHTML = '<p class="error">Failed to load buses.</p>';
+            }
+        }
+
+        function filterBuses() {
+            renderBuses();
+        }
+
+        function renderBuses() {
+            const searchTerm = document.getElementById('busSearch').value.toLowerCase();
+            const filtered = allBuses.filter(bus =>
+                bus.bus_number.toLowerCase().includes(searchTerm) ||
+                (bus.route_name && bus.route_name.toLowerCase().includes(searchTerm))
+            );
+
+            if (filtered.length === 0) {
+                document.getElementById('busesTable').innerHTML = '<p>No buses found.</p>';
+                return;
+            }
+
+            let html = '<table><thead><tr><th>Bus Number</th><th>Route Name</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            filtered.forEach(bus => {
+                html += `
+                    <tr>
+                        <td><strong>${bus.bus_number}</strong></td>
+                        <td>${bus.route_name || '—'}</td>
+                        <td><span class="badge ${bus.is_active ? 'badge-active' : 'badge-inactive'}">${bus.is_active ? 'Active' : 'Inactive'}</span></td>
+                        <td class="actions">
+                            <button class="btn-sm" onclick="monitorBus('${bus.bus_number}')">Monitor</button>
+                            <button class="btn-sm" onclick="getTrackingLink('${bus.bus_number}')">Get Link</button>
+                            <button class="btn-sm" onclick="editBus('${bus.bus_number}')">Edit</button>
+                            <button class="btn-sm" onclick="viewRoute('${bus.bus_number}')">Route</button>
+                            <button class="btn-sm btn-danger" onclick="deleteBus('${bus.bus_number}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table>';
+            document.getElementById('busesTable').innerHTML = html;
+        }
+
+        async function loadActiveDrivers() {
+            try {
+                const res = await fetch(`${API_BASE}/admin/active-drivers`, {
+                    headers: getHeaders()
+                });
+                const drivers = await res.json();
+
+                if (drivers.length === 0) {
+                    document.getElementById('activeDriversTable').innerHTML = '<p>No active drivers.</p>';
+                    return;
+                }
+
+                let html = '<table><thead><tr><th>Bus Number</th><th>Started At</th><th>Last Location</th><th>Last Update</th></tr></thead><tbody>';
+                drivers.forEach(driver => {
+                    const lastLoc = driver.last_location;
+                    html += `
+                        <tr>
+                            <td><strong>${driver.bus_number}</strong></td>
+                            <td>${new Date(driver.started_at).toLocaleString()}</td>
+                            <td>${lastLoc ? `${lastLoc.latitude.toFixed(4)}, ${lastLoc.longitude.toFixed(4)}` : '—'}</td>
+                            <td>${lastLoc ? new Date(lastLoc.recorded_at).toLocaleTimeString() : '—'}</td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table>';
+                document.getElementById('activeDriversTable').innerHTML = html;
+            } catch (err) {
+                console.error('Error loading drivers:', err);
+                document.getElementById('activeDriversTable').innerHTML = '<p class="error">Failed to load active drivers.</p>';
+            }
+        }
+
+        function showAddBusModal() {
+            currentBusNumber = null;
+            document.getElementById('busModalTitle').textContent = 'Add New Bus';
+            document.getElementById('busNumber').value = '';
+            document.getElementById('busPassword').value = '';
+            document.getElementById('busRouteName').value = '';
+            document.getElementById('busStartTime').value = '';
+            document.getElementById('busStatus').value = 'true';
+            document.getElementById('busNumber').disabled = false;
+
+            // Clear start/end fields
+            document.getElementById('startLocationSearch').value = '';
+            document.getElementById('startPointName').value = '';
+            document.getElementById('startLat').value = '';
+            document.getElementById('startLng').value = '';
+            document.getElementById('endLocationSearch').value = '';
+            document.getElementById('endPointName').value = '';
+            document.getElementById('endLat').value = '';
+            document.getElementById('endLng').value = '';
+
+            document.getElementById('busModalError').style.display = 'none';
+            document.getElementById('busModalSuccess').style.display = 'none';
+            document.getElementById('busModal').classList.add('active');
+
+            // Initialize Places Autocomplete for start/end
+            setTimeout(() => {
+                initBusLocationAutocomplete();
+            }, 100);
+        }
+
+        function initBusLocationAutocomplete() {
+            if (!googleMapsLoaded && typeof google === 'undefined') {
+                loadGoogleMaps();
+                const checkInterval = setInterval(() => {
+                    if (googleMapsLoaded || (typeof google !== 'undefined' && google.maps && google.maps.places)) {
+                        clearInterval(checkInterval);
+                        googleMapsLoaded = true;
+                        setupBusLocationAutocomplete();
+                    }
+                }, 100);
+            } else {
+                setupBusLocationAutocomplete();
+            }
+        }
+
+        function setupBusLocationAutocomplete() {
+            if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+                return;
+            }
+
+            // Start point autocomplete
+            const startInput = document.getElementById('startLocationSearch');
+            if (startPlacesAutocomplete) {
+                try {
+                    google.maps.event.clearInstanceListeners(startInput);
+                } catch (e) { }
+            }
+            startPlacesAutocomplete = new google.maps.places.Autocomplete(startInput);
+            startPlacesAutocomplete.addListener('place_changed', function () {
+                const place = startPlacesAutocomplete.getPlace();
+                if (place.geometry) {
+                    document.getElementById('startPointName').value = place.name || place.formatted_address || '';
+                    document.getElementById('startLat').value = place.geometry.location.lat().toFixed(6);
+                    document.getElementById('startLng').value = place.geometry.location.lng().toFixed(6);
+                }
+            });
+
+            // End point autocomplete
+            const endInput = document.getElementById('endLocationSearch');
+            if (endPlacesAutocomplete) {
+                try {
+                    google.maps.event.clearInstanceListeners(endInput);
+                } catch (e) { }
+            }
+            endPlacesAutocomplete = new google.maps.places.Autocomplete(endInput);
+            endPlacesAutocomplete.addListener('place_changed', function () {
+                const place = endPlacesAutocomplete.getPlace();
+                if (place.geometry) {
+                    document.getElementById('endPointName').value = place.name || place.formatted_address || '';
+                    document.getElementById('endLat').value = place.geometry.location.lat().toFixed(6);
+                    document.getElementById('endLng').value = place.geometry.location.lng().toFixed(6);
+                    renderBusStopsList(); // Update stops list when end changes
+                }
+            });
+
+            // Update stops list when start/end name changes
+            document.getElementById('startPointName').addEventListener('input', () => renderBusStopsList());
+            document.getElementById('endPointName').addEventListener('input', () => renderBusStopsList());
+        }
+
+        function addIntermediateStop() {
+            const stopId = 'stop_' + Date.now();
+            busStops.push({
+                id: stopId,
+                stop_name: '',
+                latitude: '',
+                longitude: '',
+                sequence_order: busStops.length + 2 // +2 because start is 1, end will be last
+            });
+            renderBusStopsList();
+        }
+
+        function removeBusStop(stopId) {
+            busStops = busStops.filter(s => s.id !== stopId);
+            renderBusStopsList();
+        }
+
+        function renderBusStopsList() {
+            const container = document.getElementById('busStopsList');
+            if (!container) return;
+
+            const startName = document.getElementById('startPointName').value;
+            const startLat = document.getElementById('startLat').value;
+            const startLng = document.getElementById('startLng').value;
+            const endName = document.getElementById('endPointName').value;
+            const endLat = document.getElementById('endLat').value;
+            const endLng = document.getElementById('endLng').value;
+
+            if (!startName || !endName) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Add start and end points first, then add intermediate stops.</div>';
+                return;
+            }
+
+            // Build all stops: start + intermediate + end
+            const allStops = [];
+
+            // Add start (sequence 1)
+            allStops.push({
+                id: 'start',
+                stop_name: startName,
+                latitude: startLat,
+                longitude: startLng,
+                sequence_order: 1,
+                isStart: true
+            });
+
+            // Add intermediate stops
+            busStops.forEach((stop, idx) => {
+                allStops.push({
+                    ...stop,
+                    sequence_order: idx + 2
+                });
+            });
+
+            // Add end (last sequence)
+            const endSequence = allStops.length + 1;
+            allStops.push({
+                id: 'end',
+                stop_name: endName,
+                latitude: endLat,
+                longitude: endLng,
+                sequence_order: endSequence,
+                isEnd: true
+            });
+
+            let html = '';
+            allStops.forEach((stop, idx) => {
+                const isStart = stop.isStart;
+                const isEnd = stop.isEnd;
+                const isIntermediate = !isStart && !isEnd;
+
+                html += `
+                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="background: ${isStart ? '#16a34a' : isEnd ? '#dc2626' : '#2563eb'}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">
+                                        ${isStart ? 'START' : isEnd ? 'END' : 'STOP ' + stop.sequence_order}
+                                    </span>
+                                    <span style="color: #666; font-size: 12px;">Sequence: ${stop.sequence_order}</span>
+                                </div>
+                                ${isIntermediate ? `
+                                    <input type="text" id="stop_name_${stop.id}" placeholder="Stop name" value="${stop.stop_name || ''}" 
+                                        onchange="updateBusStop('${stop.id}', 'stop_name', this.value)"
+                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px;">
+                                    <input type="text" id="stop_search_${stop.id}" placeholder="Search location" 
+                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                                        <input type="number" id="stop_lat_${stop.id}" placeholder="Latitude" value="${stop.latitude || ''}" step="0.000001"
+                                            onchange="updateBusStop('${stop.id}', 'latitude', this.value)"
+                                            style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        <input type="number" id="stop_lng_${stop.id}" placeholder="Longitude" value="${stop.longitude || ''}" step="0.000001"
+                                            onchange="updateBusStop('${stop.id}', 'longitude', this.value)"
+                                            style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    </div>
+                                ` : `
+                                    <div style="font-weight: 600; margin-bottom: 4px;">${stop.stop_name}</div>
+                                    <div style="font-size: 12px; color: #666;">📍 ${stop.latitude}, ${stop.longitude}</div>
+                                `}
+                            </div>
+                            ${isIntermediate ? `
+                                <button onclick="removeBusStop('${stop.id}')" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Remove</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Initialize autocomplete for intermediate stops
+            if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+                busStops.forEach(stop => {
+                    const searchInput = document.getElementById(`stop_search_${stop.id}`);
+                    if (searchInput) {
+                        // Clear existing autocomplete
+                        if (stopAutocompleteInstances[stop.id]) {
+                            try {
+                                google.maps.event.clearInstanceListeners(searchInput);
+                            } catch (e) { }
+                        }
+
+                        const autocomplete = new google.maps.places.Autocomplete(searchInput);
+                        autocomplete.addListener('place_changed', function () {
+                            const place = autocomplete.getPlace();
+                            if (place.geometry) {
+                                document.getElementById(`stop_name_${stop.id}`).value = place.name || place.formatted_address || '';
+                                document.getElementById(`stop_lat_${stop.id}`).value = place.geometry.location.lat().toFixed(6);
+                                document.getElementById(`stop_lng_${stop.id}`).value = place.geometry.location.lng().toFixed(6);
+                                updateBusStop(stop.id, 'stop_name', place.name || place.formatted_address || '');
+                                updateBusStop(stop.id, 'latitude', place.geometry.location.lat().toFixed(6));
+                                updateBusStop(stop.id, 'longitude', place.geometry.location.lng().toFixed(6));
+                            }
+                        });
+                        stopAutocompleteInstances[stop.id] = autocomplete;
+                    }
+                });
+            }
+        }
+
+        function updateBusStop(stopId, field, value) {
+            const stop = busStops.find(s => s.id === stopId);
+            if (stop) {
+                stop[field] = value;
+            }
+        }
+
+        async function editBus(busNumber) {
+            currentBusNumber = busNumber;
+            document.getElementById('busModalTitle').textContent = `Edit Bus ${busNumber}`;
+            document.getElementById('busNumber').value = busNumber;
+            document.getElementById('busNumber').disabled = true;
+            document.getElementById('busPassword').value = '';
+            document.getElementById('busModalError').style.display = 'none';
+            document.getElementById('busModalSuccess').style.display = 'none';
+
+            // Load current bus data
+            const buses = await fetch(`${API_BASE}/admin/buses`, { headers: getHeaders() }).then(r => r.json());
+            const bus = buses.find(b => b.bus_number === busNumber);
+            console.log('Loading bus for edit:', { busNumber, bus, start_time: bus?.start_time });
+            if (bus) {
+                document.getElementById('busRouteName').value = bus.route_name || '';
+                if (bus.start_time) {
+                    // Convert ISO datetime to time format (HH:mm)
+                    // Backend stores in UTC, but may return without 'Z', so ensure UTC parsing
+                    let timeStr = bus.start_time;
+                    if (!timeStr.endsWith('Z') && !timeStr.includes('+') && !timeStr.includes('-', 10)) {
+                        timeStr = timeStr + 'Z'; // Append Z to indicate UTC
+                    }
+                    const dt = new Date(timeStr);
+                    const hours = String(dt.getUTCHours()).padStart(2, '0');
+                    const minutes = String(dt.getUTCMinutes()).padStart(2, '0');
+                    const timeValue = `${hours}:${minutes}`;
+                    document.getElementById('busStartTime').value = timeValue;
+                    console.log('Set start_time field to:', timeValue, 'from datetime:', bus.start_time, 'parsed as:', timeStr, 'UTC hours:', dt.getUTCHours(), 'UTC minutes:', dt.getUTCMinutes());
+                } else {
+                    document.getElementById('busStartTime').value = '';
+                    console.log('No start_time in bus data, cleared field. Bus:', JSON.stringify(bus, null, 2));
+                }
+                document.getElementById('busStatus').value = bus.is_active ? 'true' : 'false';
+            } else {
+                console.error('Bus not found:', busNumber);
+            }
+
+            // Load route and get all stops
+            busStops = [];
+            try {
+                const routeRes = await fetch(`${API_BASE}/admin/buses/${busNumber}/route`, { headers: getHeaders() });
+                if (routeRes.ok) {
+                    const routeData = await routeRes.json();
+                    const stops = routeData.stops || [];
+                    if (stops.length > 0) {
+                        const sortedStops = stops.sort((a, b) => a.sequence_order - b.sequence_order);
+
+                        // First stop is start
+                        const startStop = sortedStops[0];
+                        document.getElementById('startLocationSearch').value = startStop.stop_name;
+                        document.getElementById('startPointName').value = startStop.stop_name;
+                        document.getElementById('startLat').value = startStop.latitude;
+                        document.getElementById('startLng').value = startStop.longitude;
+
+                        // Last stop is end
+                        const endStop = sortedStops[sortedStops.length - 1];
+                        document.getElementById('endLocationSearch').value = endStop.stop_name;
+                        document.getElementById('endPointName').value = endStop.stop_name;
+                        document.getElementById('endLat').value = endStop.latitude;
+                        document.getElementById('endLng').value = endStop.longitude;
+
+                        // Intermediate stops (everything between first and last)
+                        if (sortedStops.length > 2) {
+                            for (let i = 1; i < sortedStops.length - 1; i++) {
+                                const stop = sortedStops[i];
+                                busStops.push({
+                                    id: 'stop_' + stop.stop_id,
+                                    stop_name: stop.stop_name,
+                                    latitude: stop.latitude,
+                                    longitude: stop.longitude,
+                                    sequence_order: stop.sequence_order
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Could not load route data:', e);
+            }
+
+            document.getElementById('busModal').classList.add('active');
+
+            // Render stops list
+            renderBusStopsList();
+
+            // Initialize Places Autocomplete
+            setTimeout(() => {
+                initBusLocationAutocomplete();
+            }, 100);
+        }
+
+        async function saveBus() {
+            const busNumber = document.getElementById('busNumber').value;
+            const password = document.getElementById('busPassword').value;
+            const routeName = document.getElementById('busRouteName').value;
+            const startTime = document.getElementById('busStartTime').value;
+            const isActive = document.getElementById('busStatus').value === 'true';
+
+            console.log('Saving bus:', { busNumber, routeName, startTime, isActive });
+
+            // Get start/end points
+            const startName = document.getElementById('startPointName').value;
+            const startLat = document.getElementById('startLat').value;
+            const startLng = document.getElementById('startLng').value;
+            const endName = document.getElementById('endPointName').value;
+            const endLat = document.getElementById('endLat').value;
+            const endLng = document.getElementById('endLng').value;
+
+            if (!busNumber) {
+                showError('busModalError', 'Bus number is required');
+                return;
+            }
+
+            // Validate start/end if provided
+            if (startName && (!startLat || !startLng)) {
+                showError('busModalError', 'Please select start location from search suggestions');
+                return;
+            }
+            if (endName && (!endLat || !endLng)) {
+                showError('busModalError', 'Please select end location from search suggestions');
+                return;
+            }
+
+            try {
+                if (currentBusNumber) {
+                    // Update existing bus
+                    const params = new URLSearchParams();
+                    if (password) params.append('password', password);
+                    if (routeName !== null) params.append('route_name', routeName);
+
+                    // Always send start_time, even if empty (to clear it if needed)
+                    if (startTime && startTime.trim() !== '') {
+                        // Convert time (HH:mm) to today's datetime in UTC ISO format
+                        // Store the exact time entered as UTC (treating it as wall-clock time)
+                        const [hours, minutes] = startTime.split(':');
+                        // Create a date object at UTC midnight, then set the hours/minutes
+                        const utcDate = new Date(Date.UTC(2024, 0, 1, parseInt(hours), parseInt(minutes), 0, 0));
+                        // But we want today's date, so get today's date components
+                        const today = new Date();
+                        const year = today.getUTCFullYear();
+                        const month = today.getUTCMonth();
+                        const day = today.getUTCDate();
+                        // Create UTC date with today's date and the entered time
+                        const finalDate = new Date(Date.UTC(year, month, day, parseInt(hours), parseInt(minutes), 0, 0));
+                        const isoTime = finalDate.toISOString();
+                        params.append('start_time', isoTime);
+                        console.log('Sending start_time:', { startTime, hours, minutes, isoTime, finalDate: finalDate.toString() });
+                    } else {
+                        params.append('start_time', '');
+                        console.log('Sending empty start_time to clear it');
+                    }
+                    params.append('is_active', isActive);
+
+                    console.log('Update params:', params.toString());
+
+                    const res = await fetch(`${API_BASE}/admin/buses/${busNumber}?${params}`, {
+                        method: 'PUT',
+                        headers: getHeaders()
+                    });
+
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.detail || 'Failed to update bus');
+                    }
+
+                    const updateResult = await res.json();
+                    console.log('Bus update response:', JSON.stringify(updateResult, null, 2));
+
+                    // Update route with all stops
+                    if (startName && endName && routeName) {
+                        await saveAllBusStops(busNumber, routeName, startName, startLat, startLng, endName, endLat, endLng);
+                    }
+
+                    showSuccess('busModalSuccess', 'Bus updated successfully!');
+                } else {
+                    // Create new bus
+                    if (!password) {
+                        showError('busModalError', 'Password is required for new bus');
+                        return;
+                    }
+
+                    const params = new URLSearchParams({
+                        bus_number: busNumber,
+                        password: password,
+                    });
+                    if (routeName) params.append('route_name', routeName);
+                    if (startTime && startTime.trim() !== '') {
+                        // Convert time (HH:mm) to today's datetime in UTC ISO format
+                        // Store the exact time entered as UTC (treating it as wall-clock time)
+                        const [hours, minutes] = startTime.split(':');
+                        const today = new Date();
+                        const year = today.getUTCFullYear();
+                        const month = today.getUTCMonth();
+                        const day = today.getUTCDate();
+                        // Create UTC date with today's date and the entered time
+                        const finalDate = new Date(Date.UTC(year, month, day, parseInt(hours), parseInt(minutes), 0, 0));
+                        const isoTime = finalDate.toISOString();
+                        params.append('start_time', isoTime);
+                        console.log('Creating bus with start_time:', { startTime, hours, minutes, isoTime, finalDate: finalDate.toString() });
+                    }
+
+                    console.log('Create bus params:', params.toString());
+                    const res = await fetch(`${API_BASE}/admin/buses?${params}`, {
+                        method: 'POST',
+                        headers: getHeaders()
+                    });
+
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.detail || 'Failed to add bus');
+                    }
+
+                    const createResult = await res.json();
+                    console.log('Bus create response:', createResult);
+
+                    // Create route with all stops
+                    if (startName && endName && routeName) {
+                        await saveAllBusStops(busNumber, routeName, startName, startLat, startLng, endName, endLat, endLng);
+                    }
+
+                    showSuccess('busModalSuccess', 'Bus added successfully!');
+                }
+
+                setTimeout(() => {
+                    closeModal('busModal');
+                    loadBuses();
+                    loadStats();
+                }, 1000);
+            } catch (err) {
+                showError('busModalError', err.message);
+            }
+        }
+
+        async function saveAllBusStops(busNumber, routeName, startName, startLat, startLng, endName, endLat, endLng) {
+            try {
+                // Create/update route
+                const routeParams = new URLSearchParams({ route_name: routeName });
+                const routeRes = await fetch(`${API_BASE}/admin/buses/${busNumber}/route?${routeParams}`, {
+                    method: 'POST',
+                    headers: getHeaders()
+                });
+
+                if (!routeRes.ok) {
+                    throw new Error('Failed to create route');
+                }
+
+                // Get existing stops
+                const routeDataRes = await fetch(`${API_BASE}/admin/buses/${busNumber}/route`, { headers: getHeaders() });
+                const routeData = await routeDataRes.json();
+                const existingStops = routeData.stops || [];
+
+                // Delete existing stops if any
+                for (const stop of existingStops) {
+                    await fetch(`${API_BASE}/admin/buses/${busNumber}/stops/${stop.stop_id}`, {
+                        method: 'DELETE',
+                        headers: getHeaders()
+                    });
+                }
+
+                // Build all stops: start + intermediate + end
+                const allStops = [];
+
+                // Add start (sequence 1)
+                allStops.push({
+                    stop_name: startName,
+                    latitude: startLat,
+                    longitude: startLng,
+                    sequence_order: 1
+                });
+
+                // Add intermediate stops (sorted by sequence)
+                const sortedIntermediate = [...busStops].sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0));
+                sortedIntermediate.forEach((stop, idx) => {
+                    if (stop.stop_name && stop.latitude && stop.longitude) {
+                        allStops.push({
+                            stop_name: stop.stop_name,
+                            latitude: stop.latitude,
+                            longitude: stop.longitude,
+                            sequence_order: idx + 2
+                        });
+                    }
+                });
+
+                // Add end (last sequence)
+                allStops.push({
+                    stop_name: endName,
+                    latitude: endLat,
+                    longitude: endLng,
+                    sequence_order: allStops.length + 1
+                });
+
+                // Save all stops
+                for (const stop of allStops) {
+                    const params = new URLSearchParams({
+                        stop_name: stop.stop_name,
+                        latitude: stop.latitude.toString(),
+                        longitude: stop.longitude.toString(),
+                        sequence_order: stop.sequence_order.toString()
+                    });
+                    await fetch(`${API_BASE}/admin/buses/${busNumber}/stops?${params}`, {
+                        method: 'POST',
+                        headers: getHeaders()
+                    });
+                }
+            } catch (err) {
+                console.error('Error saving all stops:', err);
+                throw err;
+            }
+        }
+
+        async function deleteBus(busNumber) {
+            if (!confirm(`Are you sure you want to delete bus ${busNumber}? This will also delete all associated routes and stops.`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/buses/${busNumber}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+
+                if (!res.ok) {
+                    throw new Error('Failed to delete bus');
+                }
+
+                await loadBuses();
+                await loadStats();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function viewRoute(busNumber) {
+            currentBusNumber = busNumber;
+            document.getElementById('routeModalTitle').textContent = `Route Management - Bus ${busNumber}`;
+            document.getElementById('routeModalError').style.display = 'none';
+            document.getElementById('routeModalSuccess').style.display = 'none';
+            document.getElementById('routeModal').classList.add('active');
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/buses/${busNumber}/route`, {
+                    headers: getHeaders()
+                });
+                const data = await res.json();
+                currentRoute = data;
+
+                console.log('Route data loaded:', {
+                    routeName: data.route?.route_name,
+                    stopsCount: data.stops?.length || 0,
+                    startTime: data.start_time
+                });
+
+                document.getElementById('routeName').value = data.route?.route_name || '';
+                await loadStops(data.stops || [], data.start_time);
+            } catch (err) {
+                showError('routeModalError', 'Failed to load route: ' + err.message);
+            }
+        }
+
+        async function saveRoute() {
+            const routeName = document.getElementById('routeName').value;
+            if (!routeName) {
+                showError('routeModalError', 'Route name is required');
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({ route_name: routeName });
+                const res = await fetch(`${API_BASE}/admin/buses/${currentBusNumber}/route?${params}`, {
+                    method: 'POST',
+                    headers: getHeaders()
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.detail || 'Failed to save route');
+                }
+
+                showSuccess('routeModalSuccess', 'Route saved successfully!');
+                setTimeout(() => {
+                    viewRoute(currentBusNumber);
+                }, 1000);
+            } catch (err) {
+                showError('routeModalError', err.message);
+            }
+        }
+
+        // Haversine formula to calculate distance between two GPS coordinates (in km)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function calculateRouteDistancesPreview(stops) {
+            if (stops.length < 2) return [];
+            const distances = [0];
+            for (let i = 1; i < stops.length; i++) {
+                const prev = stops[i - 1];
+                const curr = stops[i];
+                if (prev.latitude && prev.longitude && curr.latitude && curr.longitude) {
+                    const dist = calculateDistance(prev.latitude, prev.longitude, curr.latitude, curr.longitude);
+                    distances.push(distances[i - 1] + dist);
+                } else {
+                    distances.push(distances[i - 1] + 1);
+                }
+            }
+            return distances;
+        }
+
+        function renderRouteTimelinePreview(stops, startTime) {
+            const container = document.getElementById('routeTimelinePreview');
+            if (!stops || stops.length === 0) {
+                container.innerHTML = '<div class="loading" style="color: #94a3b8; text-align: center; padding: 40px;">No stops added yet. Add stops to see timeline preview.</div>';
+                return;
+            }
+
+            console.log('Rendering timeline preview:', { stopsCount: stops.length, startTime });
+
+            const sortedStops = [...stops].sort((a, b) => a.sequence_order - b.sequence_order);
+            const routeDistances = calculateRouteDistancesPreview(sortedStops);
+            // Ensure at least ~3cm between stops by using a fixed minimum spacing
+            const stopHeight = 60; // Approximate height of each stop element
+            const minStopSpacingPx = 113; // ~3cm at 96dpi (3 * 37.8px)
+            const totalHeight = Math.max(400, (sortedStops.length - 1) * minStopSpacingPx + stopHeight);
+
+            // Calculate arrival times if start_time is available
+            let startDateTime = null;
+            if (startTime) {
+                try {
+                    // Backend may return time without 'Z', so ensure it's treated as UTC
+                    let timeStr = startTime;
+                    if (!timeStr.endsWith('Z') && !timeStr.includes('+') && !timeStr.includes('-', 10)) {
+                        timeStr = timeStr + 'Z'; // Append Z to indicate UTC
+                    }
+                    const startDate = new Date(timeStr);
+                    // Use today's date with the time from start_time
+                    // Backend stores in UTC, so extract UTC hours/minutes
+                    const today = new Date();
+                    const utcHours = startDate.getUTCHours();
+                    const utcMinutes = startDate.getUTCMinutes();
+                    today.setHours(utcHours, utcMinutes, 0, 0);
+                    startDateTime = today;
+                    console.log('Start time calculated:', {
+                        startTime,
+                        timeStr,
+                        utcHours,
+                        utcMinutes,
+                        startDateTime: startDateTime.toString(),
+                        formatted: formatTime(startDateTime)
+                    });
+                } catch (e) {
+                    console.error('Error parsing start time:', e, startTime);
+                }
+            } else {
+                console.log('No start time provided - startTime value:', startTime);
+            }
+
+            function formatTime(date) {
+                if (!date) return '—';
+                try {
+                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } catch (e) {
+                    console.error('Error formatting time:', e, date);
+                    return '—';
+                }
+            }
+
+            function calculateArrivalTime(stop) {
+                if (!startDateTime || stop.scheduled_arrival_minutes === null || stop.scheduled_arrival_minutes === undefined) {
+                    return null;
+                }
+                const arrivalTime = new Date(startDateTime);
+                arrivalTime.setMinutes(arrivalTime.getMinutes() + stop.scheduled_arrival_minutes);
+                return arrivalTime;
+            }
+
+            let html = `
+                <div style="margin-bottom: 12px; font-weight: 600; color: #fff;">Route Timeline Preview</div>
+                ${startTime ? `<div style="margin-bottom: 8px; color: #94a3b8; font-size: 14px;">Start Time: ${formatTime(startDateTime)}</div>` : '<div style="margin-bottom: 8px; color: #fbbf24; font-size: 14px;">⚠️ Set start time in bus settings to see arrival times</div>'}
+                <div class="timeline-preview-line" style="min-height: ${totalHeight}px; position: relative; padding-bottom: ${stopHeight / 2}px; overflow: visible;">
+                    <div class="timeline-preview-vertical-line" style="height: ${totalHeight - (stopHeight / 2)}px;"></div>
+            `;
+
+            sortedStops.forEach((stop, idx) => {
+                const distance = routeDistances[idx] || 0;
+                // Position stops with fixed spacing so they don't crowd
+                const stopTop = sortedStops.length > 1 ? idx * minStopSpacingPx : 0;
+                const isFirst = idx === 0;
+                const isLast = idx === sortedStops.length - 1;
+
+                // For first stop, show start time. For others, calculate arrival time
+                let displayTime = null;
+                if (isFirst && startDateTime) {
+                    // First stop shows the start time
+                    displayTime = startDateTime;
+                } else {
+                    // Other stops show calculated arrival time
+                    displayTime = calculateArrivalTime(stop);
+                }
+
+                html += `
+                    <div class="timeline-preview-stop" style="top: ${stopTop}px;">
+                        <div class="timeline-preview-stop-dot" style="background: ${isFirst ? '#16a34a' : isLast ? '#dc2626' : '#2563eb'};"></div>
+                        <div>
+                            <div class="timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</div>
+                            <div class="timeline-preview-stop-details">
+                                ${displayTime ? `<span style="color: #4ade80; font-weight: 600;">🕐 ${formatTime(displayTime)}</span> · ` : ''}
+                                ${distance.toFixed(1)} km · Sequence: ${stop.sequence_order}
+                                ${stop.scheduled_arrival_minutes !== null && stop.scheduled_arrival_minutes !== undefined ? ` · ${stop.scheduled_arrival_minutes} min` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function loadStops(stops, startTime) {
+            if (stops.length === 0) {
+                document.getElementById('stopsList').innerHTML = '<p>No stops added yet. Click "Add Stop" to add stops.</p>';
+                renderRouteTimelinePreview([], startTime);
+                return;
+            }
+
+            stops.sort((a, b) => a.sequence_order - b.sequence_order);
+
+            let html = '';
+            stops.forEach(stop => {
+                // Display scheduled times as minutes or calculated time
+                let arrival = '—';
+                let departure = '—';
+                if (stop.scheduled_arrival_minutes !== null && stop.scheduled_arrival_minutes !== undefined) {
+                    arrival = `${stop.scheduled_arrival_minutes} min`;
+                } else if (stop.scheduled_arrival) {
+                    arrival = new Date(stop.scheduled_arrival).toLocaleString();
+                }
+                if (stop.scheduled_departure_minutes !== null && stop.scheduled_departure_minutes !== undefined) {
+                    departure = `${stop.scheduled_departure_minutes} min`;
+                } else if (stop.scheduled_departure) {
+                    departure = new Date(stop.scheduled_departure).toLocaleString();
+                }
+                html += `
+                    <div class="stop-item">
+                        <div class="stop-info">
+                            <h4>${stop.stop_name} <span style="color: #666; font-weight: normal;">(#${stop.sequence_order})</span></h4>
+                            <p>📍 ${stop.latitude.toFixed(4)}, ${stop.longitude.toFixed(4)}</p>
+                            <p>🕐 Arrival: ${arrival} | Departure: ${departure}</p>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-sm" onclick="editStop(${stop.stop_id})">Edit</button>
+                            <button class="btn-sm btn-danger" onclick="deleteStop(${stop.stop_id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('stopsList').innerHTML = html;
+            renderRouteTimelinePreview(stops, startTime);
+        }
+
+        // Removed initRouteMap - replaced with vertical timeline preview
+
+        let currentStopId = null;
+
+        function showAddStopModal() {
+            console.log('Opening Add Stop modal...');
+            console.log('Current bus number:', currentBusNumber);
+
+            if (!currentBusNumber) {
+                alert('Please select a bus route first by clicking "Route" on a bus.');
+                return;
+            }
+
+            currentStopId = null;
+            document.getElementById('stopModalTitle').textContent = 'Add Stop';
+            document.getElementById('stopName').value = '';
+            document.getElementById('stopLat').value = '';
+            document.getElementById('stopLng').value = '';
+            document.getElementById('stopSequence').value = '';
+            document.getElementById('stopArrival').value = '';
+            document.getElementById('stopDeparture').value = '';
+            document.getElementById('locationSearch').value = '';
+            document.getElementById('stopModalError').style.display = 'none';
+            document.getElementById('stopModalSuccess').style.display = 'none';
+
+            // Ensure stop modal is visible
+            const stopModal = document.getElementById('stopModal');
+            stopModal.classList.add('active');
+            stopModal.style.display = 'flex';
+
+            // Initialize Places Autocomplete - wait for modal to be fully rendered
+            // Try multiple times to ensure input is ready
+            let attempts = 0;
+            const initInterval = setInterval(() => {
+                attempts++;
+                const locationInput = document.getElementById('locationSearch');
+                if (locationInput && locationInput.offsetParent !== null) {
+                    // Input is visible and ready
+                    clearInterval(initInterval);
+                    console.log('Input ready, initializing autocomplete...');
+                    initPlacesAutocomplete();
+                } else if (attempts >= 20) {
+                    // Timeout after 2 seconds
+                    clearInterval(initInterval);
+                    console.warn('Input not ready after timeout, trying anyway...');
+                    initPlacesAutocomplete();
+                }
+            }, 100);
+        }
+
+        function initPlacesAutocomplete() {
+            console.log('Initializing Places Autocomplete...');
+            console.log('Google Maps loaded:', typeof google !== 'undefined');
+            console.log('Google Maps places:', typeof google !== 'undefined' && google.maps && google.maps.places);
+            console.log('googleMapsLoaded flag:', googleMapsLoaded);
+
+            // Check if Google Maps is already available
+            if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+                console.log('Google Maps already available, setting up autocomplete...');
+                googleMapsLoaded = true;
+                setupAutocomplete();
+                return;
+            }
+
+            // Load Google Maps if not loaded
+            if (!googleMapsLoaded) {
+                console.log('Loading Google Maps API...');
+                loadGoogleMaps();
+
+                // Wait for Google Maps to load (with timeout)
+                let attempts = 0;
+                const maxAttempts = 100; // 10 seconds max wait
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+                        clearInterval(checkInterval);
+                        googleMapsLoaded = true;
+                        console.log('Google Maps loaded, setting up autocomplete...');
+                        setupAutocomplete();
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        console.error('Google Maps API failed to load after', maxAttempts * 100, 'ms');
+                        showError('stopModalError', 'Google Maps API failed to load. Please check your API key and ensure Places API is enabled in Google Cloud Console. Check browser console for details.');
+                    }
+                }, 100);
+            } else {
+                console.log('Google Maps already loaded, setting up autocomplete...');
+                setupAutocomplete();
+            }
+        }
+
+        function setupAutocomplete() {
+            const locationInput = document.getElementById('locationSearch');
+
+            // Check if input exists
+            if (!locationInput) {
+                console.error('locationSearch input not found');
+                // Retry after a short delay
+                setTimeout(() => {
+                    const retryInput = document.getElementById('locationSearch');
+                    if (retryInput) {
+                        console.log('Retrying autocomplete setup...');
+                        setupAutocomplete();
+                    }
+                }, 500);
+                return;
+            }
+
+            console.log('Setting up autocomplete for input:', locationInput.id);
+
+            if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                // Show warning if API key not configured
+                locationInput.placeholder = '⚠️ Please configure Google Maps API key first';
+                locationInput.disabled = true;
+                locationInput.style.background = '#fee2e2';
+                showError('stopModalError', 'Google Maps API key not configured. Please add your API key in admin/index.html. Get it from: https://console.cloud.google.com/google/maps-apis/credentials');
+                return;
+            }
+
+            if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+                const errorMsg = 'Google Maps API not loaded. Please check:\n' +
+                    '1. Your API key is correct\n' +
+                    '2. Places API is enabled in Google Cloud Console\n' +
+                    '3. Maps JavaScript API is enabled\n' +
+                    '4. Your browser console for detailed errors';
+                showError('stopModalError', errorMsg);
+                console.error('Google Maps API not available. Check browser console for details.');
+                console.log('Google Maps loaded:', typeof google !== 'undefined');
+                console.log('Google Maps places:', typeof google !== 'undefined' && google.maps && google.maps.places);
+                return;
+            }
+
+            locationInput.disabled = false;
+            locationInput.style.background = '';
+            locationInput.placeholder = 'Search for a location (e.g., Mumbai Central Station)';
+
+            // Destroy existing autocomplete if any
+            if (placesAutocomplete) {
+                try {
+                    google.maps.event.clearInstanceListeners(locationInput);
+                } catch (e) {
+                    console.log('Could not clear listeners:', e);
+                }
+                placesAutocomplete = null;
+            }
+
+            try {
+                console.log('Creating Autocomplete with Google Maps API...');
+                console.log('Input element:', locationInput);
+                console.log('Google Maps available:', typeof google !== 'undefined' && google.maps && google.maps.places);
+
+                // Create autocomplete
+                placesAutocomplete = new google.maps.places.Autocomplete(locationInput, {
+                    types: ['establishment', 'geocode'],
+                    fields: ['name', 'formatted_address', 'geometry']
+                });
+
+                console.log('Autocomplete instance created:', placesAutocomplete);
+
+                // Ensure dropdown appears above modal - check periodically for pac-container
+                const checkPacContainer = setInterval(() => {
+                    const pacContainer = document.querySelector('.pac-container');
+                    if (pacContainer) {
+                        pacContainer.style.zIndex = '3000';
+                        pacContainer.style.position = 'absolute';
+                        console.log('Autocomplete dropdown z-index set to 3000');
+                        clearInterval(checkPacContainer);
+                    }
+                }, 100);
+
+                // Stop checking after 5 seconds
+                setTimeout(() => clearInterval(checkPacContainer), 5000);
+
+                // When place is selected
+                placesAutocomplete.addListener('place_changed', function () {
+                    console.log('Place selected event triggered');
+                    const place = placesAutocomplete.getPlace();
+                    console.log('Selected place:', place);
+
+                    if (!place.geometry) {
+                        console.error('No geometry found for place');
+                        showError('stopModalError', 'Could not get location coordinates. Please try another location.');
+                        return;
+                    }
+
+                    // Auto-fill stop name
+                    const stopNameInput = document.getElementById('stopName');
+                    if (stopNameInput) {
+                        stopNameInput.value = place.name || place.formatted_address || '';
+                    }
+
+                    // Auto-fill coordinates
+                    const lat = place.geometry.location.lat();
+                    const lng = place.geometry.location.lng();
+                    const latInput = document.getElementById('stopLat');
+                    const lngInput = document.getElementById('stopLng');
+                    if (latInput) latInput.value = lat.toFixed(6);
+                    if (lngInput) lngInput.value = lng.toFixed(6);
+
+                    // Clear any previous errors
+                    const errorDiv = document.getElementById('stopModalError');
+                    if (errorDiv) errorDiv.style.display = 'none';
+
+                    console.log('Location selected successfully:', place.name, lat, lng);
+                });
+
+                console.log('Autocomplete initialized successfully!');
+            } catch (error) {
+                console.error('Error creating autocomplete:', error);
+                console.error('Error stack:', error.stack);
+                showError('stopModalError', `Failed to initialize location search: ${error.message}. Check browser console (F12) for details.`);
+            }
+        }
+
+        async function editStop(stopId) {
+            currentStopId = stopId;
+            const stops = currentRoute.stops || [];
+            const stop = stops.find(s => s.stop_id === stopId);
+            if (!stop) return;
+
+            document.getElementById('stopModalTitle').textContent = `Edit Stop: ${stop.stop_name}`;
+            document.getElementById('stopName').value = stop.stop_name;
+            document.getElementById('stopLat').value = stop.latitude;
+            document.getElementById('stopLng').value = stop.longitude;
+            document.getElementById('stopSequence').value = stop.sequence_order;
+            document.getElementById('locationSearch').value = `${stop.stop_name} (${stop.latitude}, ${stop.longitude})`;
+
+            // Load scheduled times as minutes
+            if (stop.scheduled_arrival_minutes !== null && stop.scheduled_arrival_minutes !== undefined) {
+                document.getElementById('stopArrival').value = stop.scheduled_arrival_minutes;
+            } else {
+                document.getElementById('stopArrival').value = '';
+            }
+            if (stop.scheduled_departure_minutes !== null && stop.scheduled_departure_minutes !== undefined) {
+                document.getElementById('stopDeparture').value = stop.scheduled_departure_minutes;
+            } else {
+                document.getElementById('stopDeparture').value = '';
+            }
+
+            document.getElementById('stopModalError').style.display = 'none';
+            document.getElementById('stopModal').classList.add('active');
+
+            // Initialize Places Autocomplete for editing
+            initPlacesAutocomplete();
+        }
+
+        async function saveStop() {
+            try {
+                console.log('Saving stop...', { currentStopId, currentBusNumber });
+
+                const stopName = document.getElementById('stopName').value.trim();
+                const latStr = document.getElementById('stopLat').value.trim();
+                const lngStr = document.getElementById('stopLng').value.trim();
+                const sequenceStr = document.getElementById('stopSequence').value.trim();
+                const arrivalStr = document.getElementById('stopArrival').value.trim();
+                const departureStr = document.getElementById('stopDeparture').value.trim();
+                const locationSearch = document.getElementById('locationSearch').value.trim();
+
+                // Check if search location is empty (optional field)
+                if (!locationSearch) {
+                    const confirmEmpty = confirm('You have left the "Search Location" field empty. This is okay if you entered the coordinates manually. Do you want to continue saving?');
+                    if (!confirmEmpty) {
+                        return; // User cancelled, don't save
+                    }
+                }
+
+                if (!stopName || !latStr || !lngStr || !sequenceStr) {
+                    showError('stopModalError', 'Please fill all required fields (Name, Latitude, Longitude, Sequence)');
+                    return;
+                }
+
+                if (!currentBusNumber) {
+                    showError('stopModalError', 'No bus selected. Please select a bus route first.');
+                    return;
+                }
+
+                const lat = parseFloat(latStr);
+                const lng = parseFloat(lngStr);
+                const sequence = parseInt(sequenceStr);
+                const arrivalMinutes = arrivalStr ? parseInt(arrivalStr) : null;
+                const departureMinutes = departureStr ? parseInt(departureStr) : null;
+
+                if (isNaN(lat) || isNaN(lng) || isNaN(sequence)) {
+                    showError('stopModalError', 'Please enter valid numbers for Latitude, Longitude, and Sequence');
+                    return;
+                }
+
+                if (arrivalMinutes !== null && isNaN(arrivalMinutes)) {
+                    showError('stopModalError', 'Please enter a valid number for Scheduled Arrival (minutes)');
+                    return;
+                }
+
+                if (departureMinutes !== null && isNaN(departureMinutes)) {
+                    showError('stopModalError', 'Please enter a valid number for Scheduled Departure (minutes)');
+                    return;
+                }
+
+                if (currentStopId) {
+                    // Update stop
+                    const params = new URLSearchParams({
+                        stop_name: stopName,
+                        latitude: lat.toString(),
+                        longitude: lng.toString(),
+                        sequence_order: sequence.toString(),
+                    });
+                    if (arrivalMinutes !== null) params.append('scheduled_arrival_minutes', arrivalMinutes.toString());
+                    if (departureMinutes !== null) params.append('scheduled_departure_minutes', departureMinutes.toString());
+
+                    const res = await fetch(`${API_BASE}/admin/buses/${currentBusNumber}/stops/${currentStopId}?${params}`, {
+                        method: 'PUT',
+                        headers: getHeaders()
+                    });
+
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.detail || 'Failed to update stop');
+                    }
+                } else {
+                    // Create stop
+                    const params = new URLSearchParams({
+                        stop_name: stopName,
+                        latitude: lat.toString(),
+                        longitude: lng.toString(),
+                        sequence_order: sequence.toString(),
+                    });
+                    if (arrivalMinutes !== null) params.append('scheduled_arrival_minutes', arrivalMinutes.toString());
+                    if (departureMinutes !== null) params.append('scheduled_departure_minutes', departureMinutes.toString());
+
+                    console.log('Creating stop with params:', params.toString());
+                    console.log('API URL:', `${API_BASE}/admin/buses/${currentBusNumber}/stops`);
+                    console.log('Headers:', getHeaders());
+
+                    const res = await fetch(`${API_BASE}/admin/buses/${currentBusNumber}/stops?${params}`, {
+                        method: 'POST',
+                        headers: getHeaders()
+                    });
+
+                    console.log('Response status:', res.status);
+                    console.log('Response ok:', res.ok);
+
+                    if (!res.ok) {
+                        const errorText = await res.text();
+                        console.error('Error response:', errorText);
+                        let errorDetail = 'Failed to add stop';
+                        try {
+                            const error = JSON.parse(errorText);
+                            errorDetail = error.detail || errorText;
+                        } catch (e) {
+                            errorDetail = errorText || `Server returned status ${res.status}`;
+                        }
+                        throw new Error(errorDetail);
+                    }
+
+                    const result = await res.json();
+                    console.log('Stop created successfully:', result);
+                }
+
+                console.log('Stop saved successfully');
+                showSuccess('stopModalSuccess', 'Stop saved successfully!');
+                setTimeout(async () => {
+                    closeModal('stopModal');
+                    await viewRoute(currentBusNumber);
+                }, 1000);
+            } catch (err) {
+                console.error('Error saving stop:', err);
+                console.error('Error stack:', err.stack);
+                showError('stopModalError', err.message || 'Failed to save stop. Check browser console (F12) for details.');
+            }
+        }
+
+        async function deleteStop(stopId) {
+            if (!confirm('Are you sure you want to delete this stop?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/buses/${currentBusNumber}/stops/${stopId}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+
+                if (!res.ok) {
+                    throw new Error('Failed to delete stop');
+                }
+
+                await viewRoute(currentBusNumber);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function getTrackingLink(busNumber) {
+            try {
+                // Try to get existing tracking code first
+                let res = await fetch(`${API_BASE}/admin/buses/${busNumber}/tracking-code`, {
+                    headers: getHeaders()
+                });
+
+                let data;
+                if (res.ok) {
+                    data = await res.json();
+                } else {
+                    // Generate new tracking code
+                    res = await fetch(`${API_BASE}/admin/buses/${busNumber}/tracking-code`, {
+                        method: 'POST',
+                        headers: getHeaders()
+                    });
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.detail || 'Failed to generate tracking code');
+                    }
+                    data = await res.json();
+                }
+
+                // Use the tracking_url from backend (already includes full URL)
+                const trackingUrl = data.tracking_url;
+
+                // Copy to clipboard
+                await navigator.clipboard.writeText(trackingUrl);
+
+                // Show success message
+                alert(`Tracking link copied to clipboard!\n\n${trackingUrl}\n\nShare this link with passengers.`);
+            } catch (err) {
+                console.error('Error getting tracking link:', err);
+                alert(`❌ Failed to get tracking link: ${err.message}`);
+            }
+        }
+
+        async function monitorBus(busNumber) {
+            currentBusNumber = busNumber;
+            document.getElementById('monitorModalTitle').textContent = `Monitor Bus ${busNumber}`;
+            document.getElementById('monitorModalError').style.display = 'none';
+            document.getElementById('monitorModal').classList.add('active');
+
+            await loadMonitorTimeline(busNumber);
+
+            // Auto-refresh every 5 seconds
+            if (window.monitorInterval) {
+                clearInterval(window.monitorInterval);
+            }
+            window.monitorInterval = setInterval(() => {
+                loadMonitorTimeline(busNumber);
+            }, 5000);
+        }
+
+        // Haversine formula to calculate distance between two GPS coordinates (in km)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function calculateRouteDistances(stops) {
+            if (stops.length < 2) return [];
+            const distances = [0];
+            for (let i = 1; i < stops.length; i++) {
+                const prev = stops[i - 1];
+                const curr = stops[i];
+                if (prev.latitude && prev.longitude && curr.latitude && curr.longitude) {
+                    const dist = calculateDistance(prev.latitude, prev.longitude, curr.latitude, curr.longitude);
+                    distances.push(distances[i - 1] + dist);
+                } else {
+                    distances.push(distances[i - 1] + 1);
+                }
+            }
+            return distances;
+        }
+
+        function calculateBusPosition(busLat, busLon, stops, routeDistances) {
+            if (!busLat || !busLon || stops.length < 2 || !routeDistances.length) {
+                return { percentage: 0, segmentIndex: 0 };
+            }
+            const totalDistance = routeDistances[routeDistances.length - 1];
+            if (totalDistance === 0) return { percentage: 0, segmentIndex: 0 };
+
+            let minDist = Infinity;
+            let bestSegment = 0;
+            let busDistanceFromStart = 0;
+
+            for (let i = 0; i < stops.length - 1; i++) {
+                const stop1 = stops[i];
+                const stop2 = stops[i + 1];
+                if (!stop1.latitude || !stop1.longitude || !stop2.latitude || !stop2.longitude) continue;
+
+                const distToStop1 = calculateDistance(busLat, busLon, stop1.latitude, stop1.longitude);
+                const distToStop2 = calculateDistance(busLat, busLon, stop2.latitude, stop2.longitude);
+                const segmentLength = calculateDistance(stop1.latitude, stop1.longitude, stop2.latitude, stop2.longitude);
+
+                if (distToStop1 + distToStop2 < segmentLength * 1.5) {
+                    const distAlongSegment = (distToStop1 < distToStop2) ? distToStop1 : segmentLength - distToStop2;
+                    const distanceFromStart = routeDistances[i] + distAlongSegment;
+                    if (distanceFromStart < minDist) {
+                        minDist = distanceFromStart;
+                        bestSegment = i;
+                        busDistanceFromStart = distanceFromStart;
+                    }
+                }
+            }
+
+            if (minDist === Infinity) {
+                for (let i = 0; i < stops.length; i++) {
+                    if (!stops[i].latitude || !stops[i].longitude) continue;
+                    const dist = calculateDistance(busLat, busLon, stops[i].latitude, stops[i].longitude);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        bestSegment = Math.max(0, i - 1);
+                        busDistanceFromStart = routeDistances[i];
+                    }
+                }
+            }
+
+            const percentage = totalDistance > 0 ? (busDistanceFromStart / totalDistance) * 100 : 0;
+            return { percentage: Math.max(0, Math.min(100, percentage)), segmentIndex: bestSegment };
+        }
+
+        function fmtTime(ts) {
+            if (!ts) return '—';
+            const d = new Date(ts);
+            return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        }
+
+        function fmtDelay(mins) {
+            if (mins === 0) return "On time";
+            return mins > 0 ? `+${mins} min` : `${mins} min`;
+        }
+
+        async function loadMonitorTimeline(busNumber) {
+            const container = document.getElementById('monitorTimeline');
+            try {
+                // Try to get stops first (this should work if route is set up)
+                const stopsRes = await fetch(`${API_BASE}/passenger/bus/${busNumber}/stops`);
+                if (!stopsRes.ok) {
+                    throw new Error('Failed to load route data. Make sure the bus has a route configured.');
+                }
+                const stopsData = await stopsRes.json();
+                const stops = stopsData.stops || [];
+
+                // Try to get bus status (may fail if bus hasn't sent location updates yet)
+                let status = null;
+                try {
+                    const statusRes = await fetch(`${API_BASE}/passenger/bus/${busNumber}`);
+                    if (statusRes.ok) {
+                        status = await statusRes.json();
+                    } else {
+                        console.log('Bus location data not available yet. Bus may not have started tracking.');
+                    }
+                } catch (e) {
+                    console.log('Could not fetch bus status:', e);
+                }
+
+                if (stops.length === 0) {
+                    container.innerHTML = '<div class="loading" style="padding: 40px; text-align: center; color: #94a3b8;">No stops available for this bus. Please configure the route first.</div>';
+                    return;
+                }
+
+                // If bus hasn't started tracking, show helpful message
+                if (!status || !status.latitude || !status.longitude) {
+                    container.innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                            <div style="font-size: 18px; margin-bottom: 12px;">📍 Bus Not Tracking Yet</div>
+                            <div style="font-size: 14px; margin-bottom: 20px;">The bus hasn't started sending location updates. Once the driver logs in and starts tracking, the real-time position will appear here.</div>
+                            <div style="font-size: 12px; color: #64748b;">Route configured with ${stops.length} stops</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const routeDistances = calculateRouteDistances(stops);
+                let busPosition = { percentage: 0, segmentIndex: 0 };
+
+                if (status && status.latitude && status.longitude) {
+                    busPosition = calculateBusPosition(status.latitude, status.longitude, stops, routeDistances);
+                }
+
+                const busDistance = (busPosition.percentage / 100) * (routeDistances[routeDistances.length - 1] || 1);
+                let passedStops = 0;
+                for (let i = 0; i < routeDistances.length; i++) {
+                    if (routeDistances[i] <= busDistance) {
+                        passedStops = i;
+                    }
+                }
+
+                const totalHeight = Math.max(500, stops.length * 80);
+                container.style.minHeight = `${totalHeight}px`;
+
+                let html = `
+                    <div style="margin-bottom: 16px; padding: 12px; background: #0f172a; border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 4px;">Bus ${busNumber}</div>
+                                <div style="font-size: 12px; color: #94a3b8;">
+                                    Status: ${status ? (status.status || 'unknown') : 'not tracking'} · 
+                                    Delay: ${status ? fmtDelay(status.running_delay_minutes || 0) : '—'} · 
+                                    Last seen: ${status ? Math.floor((status.last_seen_seconds || 0) / 60) + 'm ago' : 'never'}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 12px; color: #94a3b8;">Current Stop</div>
+                                <div style="font-weight: 600;">${status ? (status.current_stop || '—') : '—'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="position: relative; min-height: ${totalHeight}px; padding-left: 60px;">
+                        <div style="position: absolute; left: 20px; top: 0; bottom: 0; width: 3px; background: #2563eb; border-radius: 2px;"></div>
+                `;
+
+                if (status && status.latitude && status.longitude) {
+                    const busTop = (busPosition.percentage / 100) * totalHeight;
+                    html += `<div style="position: absolute; left: -58px; top: ${busTop}px; width: 24px; height: 24px; background: #2563eb; border: 3px solid #1e293b; border-radius: 50%; z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 14px;">🚌</div>`;
+                }
+
+                stops.forEach((stop, idx) => {
+                    const isPassed = idx < passedStops;
+                    const isCurrent = idx === passedStops;
+                    const distance = routeDistances[idx] || 0;
+                    const stopTop = (idx / Math.max(1, stops.length - 1)) * totalHeight;
+
+                    html += `
+                        <div style="position: absolute; top: ${stopTop}px; width: calc(100% - 60px); padding-left: 20px;">
+                            <div style="position: absolute; left: -50px; top: 8px; width: 12px; height: 12px; background: ${isPassed ? '#16a34a' : isCurrent ? '#fbbf24' : '#2563eb'}; border: 3px solid #1e293b; border-radius: 50%; z-index: 2; ${isCurrent ? 'box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2);' : ''}"></div>
+                            <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: start;">
+                                <div>
+                                    <div style="font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #fff;">${stop.stop_name}</div>
+                                    <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">${distance.toFixed(1)} km</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 14px; color: #94a3b8; margin-bottom: 4px;">${fmtTime(stop.scheduled_time)}</div>
+                                    <div style="font-size: 16px; font-weight: 600; color: ${stop.status === 'delayed' ? '#f87171' : stop.status === 'on_time' ? '#4ade80' : '#fff'};">${fmtTime(stop.eta)}</div>
+                                    <div style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; margin-top: 4px; background: ${stop.status === 'delayed' ? '#dc2626' : stop.status === 'on_time' ? '#16a34a' : '#2563eb'}; color: #fff;">${fmtDelay(stop.delay_minutes)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = `<div class="error">Error loading timeline: ${err.message}</div>`;
+                console.error('Monitor timeline error:', err);
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) {
+                console.error('Modal not found:', modalId);
+                return;
+            }
+
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+
+            if (modalId === 'monitorModal' && window.monitorInterval) {
+                clearInterval(window.monitorInterval);
+                window.monitorInterval = null;
+            }
+            if (modalId === 'stopModal' && placesAutocomplete) {
+                // Clear autocomplete listeners
+                try {
+                    google.maps.event.clearInstanceListeners(document.getElementById('locationSearch'));
+                } catch (e) {
+                    console.log('Could not clear autocomplete listeners:', e);
+                }
+                placesAutocomplete = null;
+            }
+
+            console.log('Modal closed:', modalId);
+        }
+
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 3000);
+        }
+
+        // Allow Enter key to login
+        document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+
+        // Pre-load Google Maps API when page loads
+        if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+            console.log('Pre-loading Google Maps API...');
+            loadGoogleMaps();
+        }
+
+        // Disable mouse wheel scrolling on number inputs to prevent accidental value changes
+        function disableNumberInputWheel() {
+            const numberInputs = document.querySelectorAll('input[type="number"]');
+            numberInputs.forEach(input => {
+                // Remove existing listeners by cloning
+                if (input.dataset.wheelDisabled) return;
+                input.dataset.wheelDisabled = 'true';
+
+                input.addEventListener('wheel', function (e) {
+                    if (document.activeElement === this) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }, { passive: false });
+
+                // Also handle mousewheel for older browsers
+                input.addEventListener('mousewheel', function (e) {
+                    if (document.activeElement === this) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }, { passive: false });
+            });
+        }
+
+        // Run on page load
+        disableNumberInputWheel();
+
+        // Also run when modals are opened (for dynamically created inputs)
+        const originalShowAddStopModal = showAddStopModal;
+        if (typeof showAddStopModal !== 'undefined') {
+            window.showAddStopModal = function () {
+                originalShowAddStopModal();
+                setTimeout(disableNumberInputWheel, 100);
+            };
+        }
+
+        // Use MutationObserver to handle dynamically added inputs
+        const observer = new MutationObserver(function (mutations) {
+            disableNumberInputWheel();
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    </script>
+</body>
+
+</html>
