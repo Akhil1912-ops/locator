@@ -2474,8 +2474,10 @@
                 `;
 
                 if (status && status.latitude && status.longitude) {
-                    const busTop = (busPosition.percentage / 100) * totalHeight;
-                    html += `<div style="position: absolute; left: -58px; top: ${busTop}px; width: 24px; height: 24px; background: #2563eb; border: 3px solid #1e293b; border-radius: 50%; z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 14px;">🚌</div>`;
+                    const markerSize = 40;
+                    const busTopRaw = (busPosition.percentage / 100) * totalHeight;
+                    const busTop = Math.max(0, Math.min(totalHeight - markerSize, busTopRaw - markerSize / 2));
+                    html += `<div style="position: absolute; left: 20px; top: ${busTop}px; width: ${markerSize}px; height: ${markerSize}px; background: #2563eb; border: 3px solid #1e293b; border-radius: 50%; z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 18px; transform: translateX(-50%);">🚌</div>`;
                 }
 
                 stops.forEach((stop, idx) => {

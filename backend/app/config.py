@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     app_name: str = "Bus Tracker"
     secret_key: str = os.getenv("SECRET_KEY", "dev-secret-key")
-    access_token_expire_minutes: int = 60 * 12  # 12 hours for driver sessions
+    access_token_expire_minutes: int = 60 * 24 * 30  # 30 days for driver sessions
     
     # Database - defaults to SQLite for easy local development
     # For PostgreSQL: set DATABASE_URL=postgresql://user:pass@localhost:5432/bustracker
