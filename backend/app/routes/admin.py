@@ -333,6 +333,9 @@ def create_or_update_route(
         route = Route(bus_number=bus_number, route_name=route_name)
         db.add(route)
     
+    # Keep bus route_name in sync for list display
+    bus.route_name = route_name
+    
     db.commit()
     db.refresh(route)
     

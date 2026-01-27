@@ -576,86 +576,10 @@
                 <small style="color: #666; font-size: 12px;">Leave empty to keep current password (when editing)</small>
             </div>
             <div class="form-group">
-                <label>Route Name</label>
-                <input type="text" id="busRouteName" placeholder="e.g., Route C">
-            </div>
-            <div class="form-group">
                 <label>Start Time (When bus departs from start point daily)</label>
                 <input type="time" id="busStartTime" required>
                 <small style="color: #666; font-size: 12px;">Daily departure time (e.g., 06:00 for 6 AM, 18:00 for 6
                     PM). This is the reference time for calculating arrival times at stops.</small>
-            </div>
-
-            <div style="border-top: 2px solid #e5e7eb; margin: 20px 0; padding-top: 20px;">
-                <h3 style="margin-bottom: 15px; color: #1e293b;">Route Points</h3>
-
-                <div class="form-group">
-                    <label>Start Point - Search Location</label>
-                    <input type="text" id="startLocationSearch"
-                        placeholder="Search start location (e.g., Mumbai Central)">
-                    <small style="color: #666; font-size: 12px;">Type and select from suggestions</small>
-                </div>
-                <div class="form-group">
-                    <label>Start Point Name</label>
-                    <input type="text" id="startPointName" placeholder="e.g., Mumbai Central Station">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Start Latitude</label>
-                        <input type="number" id="startLat" step="0.000001" placeholder="19.0760">
-                        <small style="color: #666; font-size: 12px;">Can be auto-filled or entered manually</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Start Longitude</label>
-                        <input type="number" id="startLng" step="0.000001" placeholder="72.8777">
-                        <small style="color: #666; font-size: 12px;">Can be auto-filled or entered manually</small>
-                    </div>
-                </div>
-
-                <div class="form-group" style="margin-top: 20px;">
-                    <label>End Point - Search Location</label>
-                    <input type="text" id="endLocationSearch" placeholder="Search end location (e.g., Andheri Station)">
-                    <small style="color: #666; font-size: 12px;">Type and select from suggestions</small>
-                </div>
-                <div class="form-group">
-                    <label>End Point Name</label>
-                    <input type="text" id="endPointName" placeholder="e.g., Andheri Station">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>End Latitude</label>
-                        <input type="number" id="endLat" step="0.000001" placeholder="19.1136">
-                        <small style="color: #666; font-size: 12px;">Can be auto-filled or entered manually</small>
-                    </div>
-                    <div class="form-group">
-                        <label>End Longitude</label>
-                        <input type="number" id="endLng" step="0.000001" placeholder="72.8697">
-                        <small style="color: #666; font-size: 12px;">Can be auto-filled or entered manually</small>
-                    </div>
-                </div>
-
-            </div>
-
-            <div style="border-top: 2px solid #e5e7eb; margin: 20px 0; padding-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0; color: #1e293b;">All Stops</h3>
-                    <button type="button" onclick="addIntermediateStop()"
-                        style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">+
-                        Add Intermediate Stop</button>
-                </div>
-                <div
-                    style="background: #f9fafb; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #2563eb;">
-                    <strong style="color: #1e40af; font-size: 13px;">💡 How it works:</strong>
-                    <ul style="color: #1e3a8a; font-size: 12px; margin: 8px 0 0 20px; padding: 0;">
-                        <li>Start and End points are automatically added as first and last stops</li>
-                        <li>Click "+ Add Intermediate Stop" to add stops between start and end</li>
-                        <li>Stops are ordered by sequence number (1 = start, 2, 3... last = end)</li>
-                    </ul>
-                </div>
-                <div id="busStopsList" style="max-height: 400px; overflow-y: auto;">
-                    <div style="text-align: center; padding: 20px; color: #666;">Stops will appear here. Add start and
-                        end points first.</div>
-                </div>
             </div>
 
             <div class="form-group">
@@ -1087,8 +1011,8 @@
                         <td class="actions">
                             <button class="btn-sm" onclick="monitorBus('${bus.bus_number}')">Monitor</button>
                             <button class="btn-sm" onclick="getTrackingLink('${bus.bus_number}')">Get Link</button>
-                            <button class="btn-sm" onclick="editBus('${bus.bus_number}')">Edit</button>
-                            <button class="btn-sm" onclick="viewRoute('${bus.bus_number}')">Route</button>
+                            <button class="btn-sm" onclick="editBus('${bus.bus_number}')">Bus Settings</button>
+                            <button class="btn-sm" onclick="viewRoute('${bus.bus_number}')">Edit Route</button>
                             <button class="btn-sm btn-danger" onclick="deleteBus('${bus.bus_number}')">Delete</button>
                         </td>
                     </tr>
@@ -1135,29 +1059,13 @@
             document.getElementById('busModalTitle').textContent = 'Add New Bus';
             document.getElementById('busNumber').value = '';
             document.getElementById('busPassword').value = '';
-            document.getElementById('busRouteName').value = '';
             document.getElementById('busStartTime').value = '';
             document.getElementById('busStatus').value = 'true';
             document.getElementById('busNumber').disabled = false;
 
-            // Clear start/end fields
-            document.getElementById('startLocationSearch').value = '';
-            document.getElementById('startPointName').value = '';
-            document.getElementById('startLat').value = '';
-            document.getElementById('startLng').value = '';
-            document.getElementById('endLocationSearch').value = '';
-            document.getElementById('endPointName').value = '';
-            document.getElementById('endLat').value = '';
-            document.getElementById('endLng').value = '';
-
             document.getElementById('busModalError').style.display = 'none';
             document.getElementById('busModalSuccess').style.display = 'none';
             document.getElementById('busModal').classList.add('active');
-
-            // Initialize Places Autocomplete for start/end
-            setTimeout(() => {
-                initBusLocationAutocomplete();
-            }, 100);
         }
 
         function initBusLocationAutocomplete() {
@@ -1381,7 +1289,6 @@
             const bus = buses.find(b => b.bus_number === busNumber);
             console.log('Loading bus for edit:', { busNumber, bus, start_time: bus?.start_time });
             if (bus) {
-                document.getElementById('busRouteName').value = bus.route_name || '';
                 if (bus.start_time) {
                     // Convert ISO datetime to time format (HH:mm)
                     // Backend stores in UTC, but may return without 'Z', so ensure UTC parsing
@@ -1405,89 +1312,19 @@
                 console.error('Bus not found:', busNumber);
             }
 
-            // Load route and get all stops
-            busStops = [];
-            try {
-                const routeRes = await fetch(`${API_BASE}/admin/buses/${busNumber}/route`, { headers: getHeaders() });
-                if (routeRes.ok) {
-                    const routeData = await routeRes.json();
-                    const stops = routeData.stops || [];
-                    if (stops.length > 0) {
-                        const sortedStops = stops.sort((a, b) => a.sequence_order - b.sequence_order);
-
-                        // First stop is start
-                        const startStop = sortedStops[0];
-                        document.getElementById('startLocationSearch').value = startStop.stop_name;
-                        document.getElementById('startPointName').value = startStop.stop_name;
-                        document.getElementById('startLat').value = startStop.latitude;
-                        document.getElementById('startLng').value = startStop.longitude;
-
-                        // Last stop is end
-                        const endStop = sortedStops[sortedStops.length - 1];
-                        document.getElementById('endLocationSearch').value = endStop.stop_name;
-                        document.getElementById('endPointName').value = endStop.stop_name;
-                        document.getElementById('endLat').value = endStop.latitude;
-                        document.getElementById('endLng').value = endStop.longitude;
-
-                        // Intermediate stops (everything between first and last)
-                        if (sortedStops.length > 2) {
-                            for (let i = 1; i < sortedStops.length - 1; i++) {
-                                const stop = sortedStops[i];
-                                busStops.push({
-                                    id: 'stop_' + stop.stop_id,
-                                    stop_name: stop.stop_name,
-                                    latitude: stop.latitude,
-                                    longitude: stop.longitude,
-                                    sequence_order: stop.sequence_order
-                                });
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('Could not load route data:', e);
-            }
-
             document.getElementById('busModal').classList.add('active');
-
-            // Render stops list
-            renderBusStopsList();
-
-            // Initialize Places Autocomplete
-            setTimeout(() => {
-                initBusLocationAutocomplete();
-            }, 100);
         }
 
         async function saveBus() {
             const busNumber = document.getElementById('busNumber').value;
             const password = document.getElementById('busPassword').value;
-            const routeName = document.getElementById('busRouteName').value;
             const startTime = document.getElementById('busStartTime').value;
             const isActive = document.getElementById('busStatus').value === 'true';
 
-            console.log('Saving bus:', { busNumber, routeName, startTime, isActive });
-
-            // Get start/end points
-            const startName = document.getElementById('startPointName').value;
-            const startLat = document.getElementById('startLat').value;
-            const startLng = document.getElementById('startLng').value;
-            const endName = document.getElementById('endPointName').value;
-            const endLat = document.getElementById('endLat').value;
-            const endLng = document.getElementById('endLng').value;
+            console.log('Saving bus:', { busNumber, startTime, isActive });
 
             if (!busNumber) {
                 showError('busModalError', 'Bus number is required');
-                return;
-            }
-
-            // Validate start/end if provided
-            if (startName && (!startLat || !startLng)) {
-                showError('busModalError', 'Please select start location from search suggestions');
-                return;
-            }
-            if (endName && (!endLat || !endLng)) {
-                showError('busModalError', 'Please select end location from search suggestions');
                 return;
             }
 
@@ -1496,7 +1333,6 @@
                     // Update existing bus
                     const params = new URLSearchParams();
                     if (password) params.append('password', password);
-                    if (routeName !== null) params.append('route_name', routeName);
 
                     // Always send start_time, even if empty (to clear it if needed)
                     if (startTime && startTime.trim() !== '') {
@@ -1536,11 +1372,6 @@
                     const updateResult = await res.json();
                     console.log('Bus update response:', JSON.stringify(updateResult, null, 2));
 
-                    // Update route with all stops
-                    if (startName && endName && routeName) {
-                        await saveAllBusStops(busNumber, routeName, startName, startLat, startLng, endName, endLat, endLng);
-                    }
-
                     showSuccess('busModalSuccess', 'Bus updated successfully!');
                 } else {
                     // Create new bus
@@ -1553,7 +1384,6 @@
                         bus_number: busNumber,
                         password: password,
                     });
-                    if (routeName) params.append('route_name', routeName);
                     if (startTime && startTime.trim() !== '') {
                         // Convert time (HH:mm) to today's datetime in UTC ISO format
                         // Store the exact time entered as UTC (treating it as wall-clock time)
@@ -1582,11 +1412,6 @@
 
                     const createResult = await res.json();
                     console.log('Bus create response:', createResult);
-
-                    // Create route with all stops
-                    if (startName && endName && routeName) {
-                        await saveAllBusStops(busNumber, routeName, startName, startLat, startLng, endName, endLat, endLng);
-                    }
 
                     showSuccess('busModalSuccess', 'Bus added successfully!');
                 }
