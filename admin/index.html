@@ -750,7 +750,7 @@
                     be filled automatically!</span>
             </div>
             <div class="form-group">
-                <label>Search Location (Type to search)</label>
+                <label>Search Location (Optional)</label>
                 <input type="text" id="locationSearch"
                     placeholder="Search for a location (e.g., Mumbai Central Station)"
                     style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
@@ -2190,14 +2190,6 @@
                 const arrivalStr = document.getElementById('stopArrival').value.trim();
                 const departureStr = document.getElementById('stopDeparture').value.trim();
                 const locationSearch = document.getElementById('locationSearch').value.trim();
-
-                // Check if search location is empty (optional field)
-                if (!locationSearch) {
-                    const confirmEmpty = confirm('You have left the "Search Location" field empty. This is okay if you entered the coordinates manually. Do you want to continue saving?');
-                    if (!confirmEmpty) {
-                        return; // User cancelled, don't save
-                    }
-                }
 
                 if (!stopName || !latStr || !lngStr || !sequenceStr) {
                     showError('stopModalError', 'Please fill all required fields (Name, Latitude, Longitude, Sequence)');
