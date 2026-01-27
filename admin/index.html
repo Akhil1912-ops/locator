@@ -867,6 +867,27 @@
             return { hour, minute };
         }
 
+        function getIstDateParts(dateLike) {
+            const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+            const parts = new Intl.DateTimeFormat('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).formatToParts(d);
+            const year = Number(parts.find(p => p.type === 'year')?.value || 0);
+            const month = Number(parts.find(p => p.type === 'month')?.value || 0);
+            const day = Number(parts.find(p => p.type === 'day')?.value || 0);
+            return { year, month, day };
+        }
+
+        function buildIstIsoTime(hours, minutes) {
+            const { year, month, day } = getIstDateParts(new Date());
+            const istOffsetMs = 5.5 * 60 * 60 * 1000;
+            const utcMillis = Date.UTC(year, month - 1, day, hours, minutes, 0, 0) - istOffsetMs;
+            return new Date(utcMillis).toISOString();
+        }
+
         async function loadDashboard() {
             try {
                 console.log('Attempting login to:', `${API_BASE}/admin/stats`);
@@ -1336,21 +1357,11 @@
 
                     // Always send start_time, even if empty (to clear it if needed)
                     if (startTime && startTime.trim() !== '') {
-                        // Convert time (HH:mm) to today's datetime in UTC ISO format
-                        // Store the exact time entered as UTC (treating it as wall-clock time)
-                        const [hours, minutes] = startTime.split(':');
-                        // Create a date object at UTC midnight, then set the hours/minutes
-                        const utcDate = new Date(Date.UTC(2024, 0, 1, parseInt(hours), parseInt(minutes), 0, 0));
-                        // But we want today's date, so get today's date components
-                        const today = new Date();
-                        const year = today.getUTCFullYear();
-                        const month = today.getUTCMonth();
-                        const day = today.getUTCDate();
-                        // Create UTC date with today's date and the entered time
-                        const finalDate = new Date(Date.UTC(year, month, day, parseInt(hours), parseInt(minutes), 0, 0));
-                        const isoTime = finalDate.toISOString();
+                        // Convert time (HH:mm) to IST-based UTC ISO format
+                        const [hours, minutes] = startTime.split(':').map(v => parseInt(v, 10));
+                        const isoTime = buildIstIsoTime(hours, minutes);
                         params.append('start_time', isoTime);
-                        console.log('Sending start_time:', { startTime, hours, minutes, isoTime, finalDate: finalDate.toString() });
+                        console.log('Sending start_time:', { startTime, hours, minutes, isoTime });
                     } else {
                         params.append('start_time', '');
                         console.log('Sending empty start_time to clear it');
@@ -1385,18 +1396,11 @@
                         password: password,
                     });
                     if (startTime && startTime.trim() !== '') {
-                        // Convert time (HH:mm) to today's datetime in UTC ISO format
-                        // Store the exact time entered as UTC (treating it as wall-clock time)
-                        const [hours, minutes] = startTime.split(':');
-                        const today = new Date();
-                        const year = today.getUTCFullYear();
-                        const month = today.getUTCMonth();
-                        const day = today.getUTCDate();
-                        // Create UTC date with today's date and the entered time
-                        const finalDate = new Date(Date.UTC(year, month, day, parseInt(hours), parseInt(minutes), 0, 0));
-                        const isoTime = finalDate.toISOString();
+                        // Convert time (HH:mm) to IST-based UTC ISO format
+                        const [hours, minutes] = startTime.split(':').map(v => parseInt(v, 10));
+                        const isoTime = buildIstIsoTime(hours, minutes);
                         params.append('start_time', isoTime);
-                        console.log('Creating bus with start_time:', { startTime, hours, minutes, isoTime, finalDate: finalDate.toString() });
+                        console.log('Creating bus with start_time:', { startTime, hours, minutes, isoTime });
                     }
 
                     console.log('Create bus params:', params.toString());
