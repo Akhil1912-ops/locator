@@ -280,7 +280,10 @@ def calculate_eta_from_scheduled_times(current_lat: float, current_lon: float, s
             target_scheduled = datetime.fromisoformat(target_scheduled.replace('Z', '+00:00'))
         if isinstance(target_scheduled, datetime):
             if target_scheduled.tzinfo is None:
-                target_scheduled = target_scheduled.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+                try:
+                    target_scheduled = target_scheduled.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+                except Exception:
+                    target_scheduled = target_scheduled.replace(tzinfo=timezone(timedelta(hours=5, minutes=30)))
             delay_minutes = int((eta - target_scheduled).total_seconds() / 60)
         else:
             delay_minutes = 0
@@ -313,7 +316,10 @@ def passenger_stop_etas(bus_number: str, store: DatabaseStore = Depends(get_stor
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No stops found for this bus")
     
     stops = []
-    india_tz = ZoneInfo("Asia/Kolkata")
+    try:
+        india_tz = ZoneInfo("Asia/Kolkata")
+    except Exception:
+        india_tz = timezone(timedelta(hours=5, minutes=30))
     now = datetime.now(india_tz)
     
     # Use scheduled times for accurate ETA calculation if GPS and scheduled times are available

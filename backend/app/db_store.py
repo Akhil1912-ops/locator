@@ -139,7 +139,10 @@ class DatabaseStore:
         stops = self.db.query(Stop).filter(
             Stop.route_id == route.route_id
         ).order_by(Stop.sequence_order).all()
-        india_tz = ZoneInfo("Asia/Kolkata")
+        try:
+            india_tz = ZoneInfo("Asia/Kolkata")
+        except Exception:
+            india_tz = timezone(timedelta(hours=5, minutes=30))
         result = []
         for stop in stops:
             # Calculate scheduled time from start_time + scheduled_arrival_minutes
