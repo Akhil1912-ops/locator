@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, status, Depends, WebSocket, WebSocketDisconnect
 import secrets
 import string
@@ -279,7 +280,7 @@ def calculate_eta_from_scheduled_times(current_lat: float, current_lon: float, s
             target_scheduled = datetime.fromisoformat(target_scheduled.replace('Z', '+00:00'))
         if isinstance(target_scheduled, datetime):
             if target_scheduled.tzinfo is None:
-                target_scheduled = target_scheduled.replace(tzinfo=timezone.utc)
+                target_scheduled = target_scheduled.replace(tzinfo=ZoneInfo("Asia/Kolkata"))
             delay_minutes = int((eta - target_scheduled).total_seconds() / 60)
         else:
             delay_minutes = 0
@@ -312,7 +313,8 @@ def passenger_stop_etas(bus_number: str, store: DatabaseStore = Depends(get_stor
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No stops found for this bus")
     
     stops = []
-    now = datetime.now(timezone.utc)
+    india_tz = ZoneInfo("Asia/Kolkata")
+    now = datetime.now(india_tz)
     
     # Use scheduled times for accurate ETA calculation if GPS and scheduled times are available
     use_scheduled_calculation = (
@@ -327,7 +329,7 @@ def passenger_stop_etas(bus_number: str, store: DatabaseStore = Depends(get_stor
         scheduled = entry.get("scheduled")
         if isinstance(scheduled, datetime):
             if scheduled.tzinfo is None:
-                scheduled = scheduled.replace(tzinfo=timezone.utc)
+                scheduled = scheduled.replace(tzinfo=india_tz)
         elif scheduled is None:
             # Calculate from start_time + scheduled_arrival_minutes if available
             if entry.get("scheduled_arrival_minutes") is not None:

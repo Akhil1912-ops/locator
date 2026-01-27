@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Dict, Optional
 from sqlalchemy.orm import Session
 import bcrypt
@@ -138,7 +139,7 @@ class DatabaseStore:
         stops = self.db.query(Stop).filter(
             Stop.route_id == route.route_id
         ).order_by(Stop.sequence_order).all()
-        
+        india_tz = ZoneInfo("Asia/Kolkata")
         result = []
         for stop in stops:
             # Calculate scheduled time from start_time + scheduled_arrival_minutes
@@ -146,7 +147,11 @@ class DatabaseStore:
             scheduled = None
             if start_time and stop.scheduled_arrival_minutes is not None:
                 # Extract time from start_time and apply to today
-                today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+                if start_time.tzinfo is None:
+                    start_time = start_time.replace(tzinfo=india_tz)
+                else:
+                    start_time = start_time.astimezone(india_tz)
+                today = datetime.now(india_tz).replace(hour=0, minute=0, second=0, microsecond=0)
                 start_hour = start_time.hour
                 start_minute = start_time.minute
                 today_start = today.replace(hour=start_hour, minute=start_minute)

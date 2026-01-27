@@ -904,6 +904,45 @@
             };
         }
 
+        function formatTimeIST(dateLike) {
+            if (!dateLike) return '—';
+            const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+            if (Number.isNaN(d.getTime())) return '—';
+            return new Intl.DateTimeFormat('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(d);
+        }
+
+        function formatDateTimeIST(dateLike) {
+            if (!dateLike) return '—';
+            const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+            if (Number.isNaN(d.getTime())) return '—';
+            return new Intl.DateTimeFormat('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(d);
+        }
+
+        function getIstTimeParts(dateLike) {
+            const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+            if (Number.isNaN(d.getTime())) return { hour: 0, minute: 0 };
+            const parts = new Intl.DateTimeFormat('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).formatToParts(d);
+            const hour = Number(parts.find(p => p.type === 'hour')?.value || 0);
+            const minute = Number(parts.find(p => p.type === 'minute')?.value || 0);
+            return { hour, minute };
+        }
+
         async function loadDashboard() {
             try {
                 console.log('Attempting login to:', `${API_BASE}/admin/stats`);
@@ -1077,9 +1116,9 @@
                     html += `
                         <tr>
                             <td><strong>${driver.bus_number}</strong></td>
-                            <td>${new Date(driver.started_at).toLocaleString()}</td>
+                            <td>${formatDateTimeIST(driver.started_at)}</td>
                             <td>${lastLoc ? `${lastLoc.latitude.toFixed(4)}, ${lastLoc.longitude.toFixed(4)}` : '—'}</td>
-                            <td>${lastLoc ? new Date(lastLoc.recorded_at).toLocaleTimeString() : '—'}</td>
+                            <td>${lastLoc ? formatTimeIST(lastLoc.recorded_at) : '—'}</td>
                         </tr>
                     `;
                 });
@@ -1351,11 +1390,12 @@
                         timeStr = timeStr + 'Z'; // Append Z to indicate UTC
                     }
                     const dt = new Date(timeStr);
-                    const hours = String(dt.getUTCHours()).padStart(2, '0');
-                    const minutes = String(dt.getUTCMinutes()).padStart(2, '0');
+                    const istParts = getIstTimeParts(dt);
+                    const hours = String(istParts.hour).padStart(2, '0');
+                    const minutes = String(istParts.minute).padStart(2, '0');
                     const timeValue = `${hours}:${minutes}`;
                     document.getElementById('busStartTime').value = timeValue;
-                    console.log('Set start_time field to:', timeValue, 'from datetime:', bus.start_time, 'parsed as:', timeStr, 'UTC hours:', dt.getUTCHours(), 'UTC minutes:', dt.getUTCMinutes());
+                    console.log('Set start_time field to:', timeValue, 'from datetime:', bus.start_time, 'parsed as:', timeStr, 'IST hours:', istParts.hour, 'IST minutes:', istParts.minute);
                 } else {
                     document.getElementById('busStartTime').value = '';
                     console.log('No start_time in bus data, cleared field. Bus:', JSON.stringify(bus, null, 2));
@@ -1769,18 +1809,16 @@
                         timeStr = timeStr + 'Z'; // Append Z to indicate UTC
                     }
                     const startDate = new Date(timeStr);
-                    // Use today's date with the time from start_time
-                    // Backend stores in UTC, so extract UTC hours/minutes
-                    const today = new Date();
-                    const utcHours = startDate.getUTCHours();
-                    const utcMinutes = startDate.getUTCMinutes();
-                    today.setHours(utcHours, utcMinutes, 0, 0);
-                    startDateTime = today;
+                    // Use today's date with the time from start_time in IST
+                    const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+                    const istParts = getIstTimeParts(startDate);
+                    istNow.setHours(istParts.hour, istParts.minute, 0, 0);
+                    startDateTime = istNow;
                     console.log('Start time calculated:', {
                         startTime,
                         timeStr,
-                        utcHours,
-                        utcMinutes,
+                        istHours: istParts.hour,
+                        istMinutes: istParts.minute,
                         startDateTime: startDateTime.toString(),
                         formatted: formatTime(startDateTime)
                     });
@@ -1794,7 +1832,7 @@
             function formatTime(date) {
                 if (!date) return '—';
                 try {
-                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    return formatTimeIST(date);
                 } catch (e) {
                     console.error('Error formatting time:', e, date);
                     return '—';
@@ -1870,12 +1908,12 @@
                 if (stop.scheduled_arrival_minutes !== null && stop.scheduled_arrival_minutes !== undefined) {
                     arrival = `${stop.scheduled_arrival_minutes} min`;
                 } else if (stop.scheduled_arrival) {
-                    arrival = new Date(stop.scheduled_arrival).toLocaleString();
+                    arrival = formatDateTimeIST(stop.scheduled_arrival);
                 }
                 if (stop.scheduled_departure_minutes !== null && stop.scheduled_departure_minutes !== undefined) {
                     departure = `${stop.scheduled_departure_minutes} min`;
                 } else if (stop.scheduled_departure) {
-                    departure = new Date(stop.scheduled_departure).toLocaleString();
+                    departure = formatDateTimeIST(stop.scheduled_departure);
                 }
                 html += `
                     <div class="stop-item">
@@ -2417,8 +2455,7 @@
 
         function fmtTime(ts) {
             if (!ts) return '—';
-            const d = new Date(ts);
-            return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            return formatTimeIST(ts);
         }
 
         function fmtDelay(mins) {
