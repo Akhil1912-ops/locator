@@ -1578,6 +1578,8 @@
                 showSuccess('routeModalSuccess', 'Route saved successfully!');
                 setTimeout(() => {
                     viewRoute(currentBusNumber);
+                    loadBuses();
+                    loadStats();
                 }, 1000);
             } catch (err) {
                 showError('routeModalError', err.message);
@@ -2033,21 +2035,37 @@
                 const lat = parseFloat(latStr);
                 const lng = parseFloat(lngStr);
                 const sequence = parseInt(sequenceStr);
-                const arrivalMinutes = arrivalStr ? parseInt(arrivalStr) : null;
-                const departureMinutes = departureStr ? parseInt(departureStr) : null;
+                const arrivalMinutes = arrivalStr ? parseInt(arrivalStr, 10) : null;
+                const departureMinutes = departureStr ? parseInt(departureStr, 10) : null;
 
                 if (isNaN(lat) || isNaN(lng) || isNaN(sequence)) {
                     showError('stopModalError', 'Please enter valid numbers for Latitude, Longitude, and Sequence');
                     return;
                 }
 
-                if (arrivalMinutes !== null && isNaN(arrivalMinutes)) {
+                if (sequence < 1 || !Number.isInteger(sequence)) {
+                    showError('stopModalError', 'Sequence must be a positive integer');
+                    return;
+                }
+
+                if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                    showError('stopModalError', 'Invalid coordinates. Latitude must be -90 to 90, Longitude must be -180 to 180');
+                    return;
+                }
+
+                if (arrivalStr !== '' && isNaN(arrivalMinutes)) {
                     showError('stopModalError', 'Please enter a valid number for Scheduled Arrival (minutes)');
                     return;
                 }
 
-                if (departureMinutes !== null && isNaN(departureMinutes)) {
+                if (departureStr !== '' && isNaN(departureMinutes)) {
                     showError('stopModalError', 'Please enter a valid number for Scheduled Departure (minutes)');
+                    return;
+                }
+
+                const existingStops = (currentRoute?.stops || []).filter(s => !currentStopId || s.stop_id !== currentStopId);
+                if (existingStops.some(s => s.sequence_order === sequence)) {
+                    showError('stopModalError', `Sequence ${sequence} is already used. Please choose another.`);
                     return;
                 }
 
@@ -2059,8 +2077,16 @@
                         longitude: lng.toString(),
                         sequence_order: sequence.toString(),
                     });
-                    if (arrivalMinutes !== null) params.append('scheduled_arrival_minutes', arrivalMinutes.toString());
-                    if (departureMinutes !== null) params.append('scheduled_departure_minutes', departureMinutes.toString());
+                    if (arrivalStr !== '') {
+                        params.append('scheduled_arrival_minutes', arrivalMinutes.toString());
+                    } else {
+                        params.append('scheduled_arrival_minutes', '-1');
+                    }
+                    if (departureStr !== '') {
+                        params.append('scheduled_departure_minutes', departureMinutes.toString());
+                    } else {
+                        params.append('scheduled_departure_minutes', '-1');
+                    }
 
                     const res = await fetch(`${API_BASE}/admin/buses/${currentBusNumber}/stops/${currentStopId}?${params}`, {
                         method: 'PUT',
@@ -2079,8 +2105,8 @@
                         longitude: lng.toString(),
                         sequence_order: sequence.toString(),
                     });
-                    if (arrivalMinutes !== null) params.append('scheduled_arrival_minutes', arrivalMinutes.toString());
-                    if (departureMinutes !== null) params.append('scheduled_departure_minutes', departureMinutes.toString());
+                    if (arrivalStr !== '') params.append('scheduled_arrival_minutes', arrivalMinutes.toString());
+                    if (departureStr !== '') params.append('scheduled_departure_minutes', departureMinutes.toString());
 
                     console.log('Creating stop with params:', params.toString());
                     console.log('API URL:', `${API_BASE}/admin/buses/${currentBusNumber}/stops`);

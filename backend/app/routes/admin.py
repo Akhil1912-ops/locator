@@ -364,6 +364,14 @@ def add_stop(
     route = db.query(Route).filter(Route.bus_number == bus_number).first()
     if not route:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Route not found. Create route first.")
+
+    if sequence_order < 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="sequence_order must be a positive integer")
+    if latitude < -90 or latitude > 90 or longitude < -180 or longitude > 180:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid coordinates")
+    duplicate = db.query(Stop).filter(Stop.route_id == route.route_id, Stop.sequence_order == sequence_order).first()
+    if duplicate:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Sequence order already exists for this route")
     
     # Parse scheduled times (legacy datetime format)
     arrival_dt = None
@@ -371,13 +379,17 @@ def add_stop(
     if scheduled_arrival:
         try:
             arrival_dt = datetime.fromisoformat(scheduled_arrival.replace("Z", "+00:00"))
-        except:
-            pass
+        except Exception as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid scheduled_arrival: {exc}")
     if scheduled_departure:
         try:
             departure_dt = datetime.fromisoformat(scheduled_departure.replace("Z", "+00:00"))
-        except:
-            pass
+        except Exception as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid scheduled_departure: {exc}")
+    if scheduled_arrival_minutes is not None and scheduled_arrival_minutes < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="scheduled_arrival_minutes must be >= 0")
+    if scheduled_departure_minutes is not None and scheduled_departure_minutes < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="scheduled_departure_minutes must be >= 0")
     
     stop = Stop(
         route_id=route.route_id,
@@ -419,36 +431,60 @@ def update_stop(
     _: bool = Depends(verify_admin_password),
 ):
     """Update a stop"""
+    route = db.query(Route).filter(Route.bus_number == bus_number).first()
+    if not route:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Route not found")
     stop = db.query(Stop).filter(Stop.stop_id == stop_id).first()
     if not stop:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stop not found")
+    if stop.route_id != route.route_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stop does not belong to this route")
     
     if stop_name is not None:
         stop.stop_name = stop_name
     if latitude is not None:
+        if latitude < -90 or latitude > 90:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid latitude")
         stop.latitude = latitude
     if longitude is not None:
+        if longitude < -180 or longitude > 180:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid longitude")
         stop.longitude = longitude
     if sequence_order is not None:
+        if sequence_order < 1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="sequence_order must be a positive integer")
+        duplicate = db.query(Stop).filter(
+            Stop.route_id == route.route_id,
+            Stop.sequence_order == sequence_order,
+            Stop.stop_id != stop_id
+        ).first()
+        if duplicate:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Sequence order already exists for this route")
         stop.sequence_order = sequence_order
     
     # Handle legacy datetime format
     if scheduled_arrival is not None:
         try:
             stop.scheduled_arrival = datetime.fromisoformat(scheduled_arrival.replace("Z", "+00:00"))
-        except:
-            pass
+        except Exception as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid scheduled_arrival: {exc}")
     if scheduled_departure is not None:
         try:
             stop.scheduled_departure = datetime.fromisoformat(scheduled_departure.replace("Z", "+00:00"))
-        except:
-            pass
+        except Exception as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid scheduled_departure: {exc}")
     
     # Handle minutes format (preferred)
     if scheduled_arrival_minutes is not None:
-        stop.scheduled_arrival_minutes = scheduled_arrival_minutes
+        if scheduled_arrival_minutes < 0:
+            stop.scheduled_arrival_minutes = None
+        else:
+            stop.scheduled_arrival_minutes = scheduled_arrival_minutes
     if scheduled_departure_minutes is not None:
-        stop.scheduled_departure_minutes = scheduled_departure_minutes
+        if scheduled_departure_minutes < 0:
+            stop.scheduled_departure_minutes = None
+        else:
+            stop.scheduled_departure_minutes = scheduled_departure_minutes
     
     db.commit()
     db.refresh(stop)
