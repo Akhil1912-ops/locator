@@ -33,7 +33,7 @@ export default function TrackingScreen({
           </Text>
           <Text style={styles.statusSubtext}>
             {isTracking
-              ? 'Your location is being sent every 15 seconds'
+              ? 'Best accuracy • ~10 s or 25 m updates • works in background'
               : 'Tap Start to begin tracking'}
           </Text>
         </View>
@@ -83,8 +83,9 @@ export default function TrackingScreen({
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>Important:</Text>
           <Text style={styles.infoText}>
-            • Keep the app running in background{'\n'}
-            • Do not force close the app{'\n'}
+            • We use navigation-grade accuracy (like Google Maps){'\n'}
+            • Keep the app running in background; do not force close{'\n'}
+            • Disable battery optimization for best results{'\n'}
             • An alarm will sound if tracking stops unexpectedly
           </Text>
           <TouchableOpacity style={styles.settingsButton} onPress={onOpenSettings}>

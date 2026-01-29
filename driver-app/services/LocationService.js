@@ -1,30 +1,59 @@
+import { Platform } from 'react-native';
 import * as Location from 'expo-location';
-import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendLocation } from './ApiService';
 
-let locationInterval = null;
-let lastLocationSent = null;
+const ACCURACY = Location.Accuracy.BestForNavigation;
+const TIME_INTERVAL_MS = 10000;  // 10 seconds
+const DISTANCE_INTERVAL_M = 25;  // 25 meters
+
+let foregroundSubscription = null;
+
+/**
+ * Call after successfully sending a location to the backend.
+ * Persists lastLocationSent for "tracking stopped?" checks and alarms.
+ */
+export const recordLocationSent = async () => {
+  const now = Date.now();
+  try {
+    await AsyncStorage.setItem('lastLocationSent', now.toString());
+  } catch (e) {
+    console.warn('Failed to persist lastLocationSent:', e);
+  }
+};
+
+async function sendAndRecord(sessionToken, latitude, longitude) {
+  await sendLocation(sessionToken, latitude, longitude);
+  await recordLocationSent();
+}
 
 export const startLocationTracking = async (taskName) => {
   try {
-    // Start background location updates
+    // Android: ask user to enable high-accuracy mode (Wi‑Fi + cell + GPS)
+    if (Platform.OS === 'android') {
+      try {
+        await Location.enableNetworkProviderAsync();
+      } catch (e) {
+        console.warn('enableNetworkProviderAsync failed (user may have dismissed):', e?.message);
+      }
+    }
+
     await Location.startLocationUpdatesAsync(taskName, {
-      accuracy: Location.Accuracy.Balanced,
-      timeInterval: 15000, // 15 seconds
-      distanceInterval: 0,
+      accuracy: ACCURACY,
+      timeInterval: TIME_INTERVAL_MS,
+      distanceInterval: DISTANCE_INTERVAL_M,
+      deferredUpdatesDistance: 0,
+      deferredUpdatesInterval: 0,
       foregroundService: {
         notificationTitle: 'Bus Tracking Active',
-        notificationBody: 'Your location is being tracked',
+        notificationBody: 'Your location is being sent with best available accuracy.',
         notificationColor: '#4CAF50',
       },
       pausesUpdatesAutomatically: false,
       activityType: Location.ActivityType.AutomotiveNavigation,
     });
 
-    // Also set up foreground tracking as backup
-    startForegroundTracking();
-
+    await startForegroundTracking();
     return true;
   } catch (error) {
     console.error('Error starting location tracking:', error);
@@ -32,46 +61,50 @@ export const startLocationTracking = async (taskName) => {
   }
 };
 
-const startForegroundTracking = async () => {
-  // Clear any existing interval
-  if (locationInterval) {
-    clearInterval(locationInterval);
+async function startForegroundTracking() {
+  if (foregroundSubscription) {
+    foregroundSubscription.remove();
+    foregroundSubscription = null;
   }
 
-  // Send location every 15 seconds
-  locationInterval = setInterval(async () => {
+  const callback = async (location) => {
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
+      if (status !== 'granted') return;
 
-        const sessionToken = await AsyncStorage.getItem('sessionToken');
-        if (sessionToken) {
-          await sendLocation(
-            sessionToken,
-            location.coords.latitude,
-            location.coords.longitude
-          );
-          lastLocationSent = Date.now();
-          await AsyncStorage.setItem('lastLocationSent', lastLocationSent.toString());
-        }
-      }
+      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      if (!sessionToken) return;
+
+      const { latitude, longitude } = location.coords;
+      await sendAndRecord(sessionToken, latitude, longitude);
     } catch (error) {
-      console.error('Error in foreground tracking:', error);
+      console.error('Foreground location send error:', error);
     }
-  }, 15000); // 15 seconds
-};
+  };
+
+  const options = {
+    accuracy: ACCURACY,
+    timeInterval: TIME_INTERVAL_MS,
+    distanceInterval: DISTANCE_INTERVAL_M,
+  };
+
+  try {
+    const sub = await Location.watchPositionAsync(options, callback, (err) => {
+      console.warn('watchPositionAsync error:', err);
+    });
+    foregroundSubscription = sub;
+  } catch (e) {
+    console.error('Failed to start watchPositionAsync:', e);
+  }
+}
 
 export const stopLocationTracking = async (taskName) => {
   try {
     await Location.stopLocationUpdatesAsync(taskName);
-    
-    // Clear foreground tracking
-    if (locationInterval) {
-      clearInterval(locationInterval);
-      locationInterval = null;
+
+    if (foregroundSubscription) {
+      foregroundSubscription.remove();
+      foregroundSubscription = null;
     }
 
     return true;
@@ -98,5 +131,3 @@ export const getLastLocationSentTime = async () => {
     return null;
   }
 };
-
-

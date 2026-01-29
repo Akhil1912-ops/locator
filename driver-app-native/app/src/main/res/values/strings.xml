@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bus Driver Tracker</string>
+    <string name="notif_channel_tracking">Tracking</string>
+    <string name="notif_channel_alarm">Alerts</string>
+    <string name="notif_tracking_title">Bus tracking active</string>
+    <string name="notif_tracking_text">Location is being sent with best accuracy</string>
+    <string name="notif_alarm_title">Tracking stopped</string>
+    <string name="notif_alarm_text">Location updates have stopped. Open the app to resume.</string>
+</resources>

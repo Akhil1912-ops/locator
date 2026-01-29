@@ -39,7 +39,10 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Bus Driver Tracker to use your location for tracking."
+          "locationAlwaysAndWhenInUsePermission": "Allow Bus Driver Tracker to use your location for tracking.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "isIosBackgroundLocationEnabled": true
         }
       ],
       [

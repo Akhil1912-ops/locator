@@ -6,7 +6,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import * as IntentLauncher from 'expo-intent-launcher';
-import { startLocationTracking, stopLocationTracking, checkTrackingStatus, getLastLocationSentTime } from './services/LocationService';
+import { startLocationTracking, stopLocationTracking, checkTrackingStatus, getLastLocationSentTime, recordLocationSent } from './services/LocationService';
 import { loginDriver, sendLocation, setApiBaseUrl, getApiBaseUrl } from './services/ApiService';
 import { setupAlarmSystem, stopAlarm } from './services/AlarmService';
 import TrackingScreen from './screens/TrackingScreen';
@@ -45,6 +45,7 @@ async function sendLocationToBackend(location) {
         location.coords.latitude,
         location.coords.longitude
       );
+      await recordLocationSent();
     }
   } catch (error) {
     console.error('Error sending location:', error);
