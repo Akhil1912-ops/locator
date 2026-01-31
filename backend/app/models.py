@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -93,6 +93,18 @@ class DelayInfo(Base):
 
     # Relationships
     bus = relationship("Bus", back_populates="delay_info")
+
+
+class StopArrival(Base):
+    """Records when a bus actually arrived at a stop during a trip (session-scoped)."""
+    __tablename__ = "stop_arrivals"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    session_id = Column(Integer, ForeignKey("driver_sessions.session_id"), nullable=False, index=True)
+    stop_id = Column(Integer, ForeignKey("stops.stop_id"), nullable=False, index=True)
+    arrived_at = Column(DateTime, nullable=False)
+
+    __table_args__ = (UniqueConstraint("session_id", "stop_id", name="uq_stop_arrival_session_stop"),)
 
 
 class TrackingCode(Base):

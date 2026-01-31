@@ -296,98 +296,141 @@ def calculate_eta_from_scheduled_times(current_lat: float, current_lon: float, s
     return eta, delay_minutes
 
 
+def _compute_route_distances(stops: list) -> list:
+    """Cumulative distances from start for each stop."""
+    dists = [0.0]
+    for i in range(1, len(stops)):
+        p, c = stops[i - 1], stops[i]
+        if p.get("latitude") and c.get("latitude"):
+            d = haversine_distance(p["latitude"], p["longitude"], c["latitude"], c["longitude"])
+            dists.append(dists[-1] + d)
+        else:
+            dists.append(dists[-1] + 1.0)
+    return dists
+
+
+def _compute_bus_position(lat: float, lon: float, stops: list, route_distances: list) -> float:
+    """Bus distance from start in km, or 0 if no GPS."""
+    if not stops or not route_distances:
+        return 0.0
+    min_dist = float("inf")
+    bus_dist = 0.0
+    for i in range(len(stops) - 1):
+        a, b = stops[i], stops[i + 1]
+        if not (a.get("latitude") and b.get("latitude")):
+            continue
+        da = haversine_distance(lat, lon, a["latitude"], a["longitude"])
+        db = haversine_distance(lat, lon, b["latitude"], b["longitude"])
+        seg = route_distances[i + 1] - route_distances[i]
+        if seg > 0.001:
+            prog = max(0, min(1, da / (da + db))) if (da + db) > 0.001 else 0
+            bd = route_distances[i] + seg * prog
+        else:
+            bd = route_distances[i]
+        if min(da, db) < min_dist:
+            min_dist = min(da, db)
+            bus_dist = bd
+    return bus_dist
+
+
 @router.get("/bus/{bus_number}/stops", response_model=schemas.StopEtaResponse)
 def passenger_stop_etas(bus_number: str, store: DatabaseStore = Depends(get_store)):
-    """Get ETA for all stops using scheduled times and GPS position"""
+    """Get ETA for all stops. Passed stops: no ETA; at_stop: 'At stop'; upcoming: ETA."""
     delay_info = store.get_delay(bus_number)
     base_delay = delay_info.get("delay_minutes", 0)
-    
-    # Get current bus location for accurate ETA calculation
+
     last_location = store.get_last_location(bus_number)
     current_lat = last_location.get("latitude") if last_location else None
     current_lon = last_location.get("longitude") if last_location else None
-    
-    # Get stops from database
+    session_id = last_location.get("session_id") if last_location else None
+
     db_stops = store.get_stops_for_bus(bus_number)
-    if not db_stops:
-        # Fallback to fake schedule if no database stops
-        schedule = _fake_schedule(bus_number)
-    else:
-        schedule = db_stops
-    
+    schedule = db_stops if db_stops else _fake_schedule(bus_number)
     if not schedule or len(schedule) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No stops found for this bus")
-    
-    stops = []
+
     try:
         india_tz = ZoneInfo("Asia/Kolkata")
     except Exception:
         india_tz = timezone(timedelta(hours=5, minutes=30))
     now = datetime.now(india_tz)
-    
-    # Use scheduled times for accurate ETA calculation if GPS and scheduled times are available
+
+    arrivals = store.get_stop_arrivals_for_session(session_id)
+    route_distances = _compute_route_distances(schedule)
+    bus_dist = _compute_bus_position(current_lat or 0, current_lon or 0, schedule, route_distances) if current_lat and current_lon else 0.0
+
     use_scheduled_calculation = (
-        current_lat is not None and 
-        current_lon is not None and 
-        len(schedule) > 0 and
-        all(stop.get("scheduled_arrival_minutes") is not None for stop in schedule)
+        current_lat is not None and current_lon is not None and
+        len(schedule) > 0 and all(s.get("scheduled_arrival_minutes") is not None for s in schedule)
     )
-    
+
+    stops_out = []
     for idx, entry in enumerate(schedule):
-        # Parse scheduled time
         scheduled = entry.get("scheduled")
         if isinstance(scheduled, datetime):
             if scheduled.tzinfo is None:
                 scheduled = scheduled.replace(tzinfo=timezone.utc).astimezone(india_tz)
-        elif scheduled is None:
-            # Calculate from start_time + scheduled_arrival_minutes if available
-            if entry.get("scheduled_arrival_minutes") is not None:
-                # This should already be calculated in get_stops_for_bus, but handle fallback
-                scheduled = now.replace(minute=0, second=0, microsecond=0)
             else:
-                scheduled = now.replace(minute=0, second=0, microsecond=0)
+                scheduled = scheduled.astimezone(india_tz)
         else:
             scheduled = now.replace(minute=0, second=0, microsecond=0)
-        
-        # Calculate ETA using scheduled times and GPS position
-        if use_scheduled_calculation and entry.get("latitude") and entry.get("longitude"):
-            eta_result = calculate_eta_from_scheduled_times(
-                current_lat, current_lon,
-                schedule, now, idx
-            )
-            
-            if eta_result and eta_result[0]:
-                eta, calculated_delay = eta_result
-                delay = calculated_delay
-            else:
-                # Fallback: use base delay
-                eta = scheduled + timedelta(minutes=base_delay)
-                delay = base_delay
-        else:
-            # Fallback: use delay-based calculation
-            eta = scheduled + timedelta(minutes=base_delay)
-            delay = base_delay
-        
-        # Determine status
+
+        stop_dist = route_distances[idx] if idx < len(route_distances) else 0
+        stop_lat = entry.get("latitude")
+        stop_lon = entry.get("longitude")
+        dist_to_stop = haversine_distance(current_lat or 0, current_lon or 0, stop_lat or 0, stop_lon or 0) if current_lat and stop_lat else 999.0
+
+        is_passed = bus_dist > stop_dist + 0.02
+        is_at_stop = not is_passed and dist_to_stop < 0.02
+
+        actual_arrived = None
+        stop_id = entry.get("stop_id")
+        if stop_id and stop_id in arrivals:
+            actual_arrived = arrivals[stop_id]
+            if actual_arrived.tzinfo is None:
+                actual_arrived = actual_arrived.replace(tzinfo=timezone.utc).astimezone(india_tz)
+            elif actual_arrived.tzinfo != india_tz:
+                actual_arrived = actual_arrived.astimezone(india_tz)
+
+        eta = None
         status_label = "on_time"
-        if delay > 1:
-            status_label = "delayed"
-        elif delay < -1:
-            status_label = "early"
-        
-        stops.append(
+        delay = base_delay
+
+        if is_passed:
+            eta = None
+            status_label = "arrived"
+            delay = 0
+        elif is_at_stop:
+            eta = None
+            status_label = "at_stop"
+            delay = 0
+        else:
+            if use_scheduled_calculation and stop_lat and stop_lon:
+                eta_result = calculate_eta_from_scheduled_times(current_lat, current_lon, schedule, now, idx)
+                if eta_result and eta_result[0]:
+                    eta, delay = eta_result
+                    status_label = "on_time" if delay <= 1 and delay >= -1 else ("delayed" if delay > 1 else "early")
+                else:
+                    eta = scheduled + timedelta(minutes=base_delay)
+                    status_label = "on_time"
+            else:
+                eta = scheduled + timedelta(minutes=base_delay)
+                status_label = "on_time"
+
+        stops_out.append(
             schemas.StopEta(
                 stop_name=entry.get("name", f"Stop {idx + 1}"),
                 scheduled_time=scheduled,
                 eta=eta,
+                actual_arrived_at=actual_arrived,
                 delay_minutes=delay,
                 status=status_label,
-                latitude=entry.get("latitude"),
-                longitude=entry.get("longitude"),
+                latitude=stop_lat,
+                longitude=stop_lon,
             )
         )
-    
-    return schemas.StopEtaResponse(bus_number=bus_number, stops=stops)
+
+    return schemas.StopEtaResponse(bus_number=bus_number, stops=stops_out)
 
 
 @router.get("/track/{code}")

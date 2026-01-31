@@ -94,6 +94,12 @@ async def update_location(
 ):
     logger.info("Location received: bus=%s lat=%.6f lon=%.6f", bus_number, payload.latitude, payload.longitude)
     saved = store.save_location(bus_number, payload.latitude, payload.longitude, payload.recorded_at)
+
+    # Record actual stop arrivals when bus is within 20m of a stop (per-trip, session-scoped)
+    store.record_stop_arrivals_if_near(
+        bus_number, saved.get("session_id"),
+        payload.latitude, payload.longitude, payload.recorded_at
+    )
     
     # Automatically calculate delay based on GPS position
     current_time = payload.recorded_at

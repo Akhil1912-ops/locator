@@ -33,9 +33,10 @@ class LastLocation(BaseModel):
 class StopEta(BaseModel):
     stop_name: str
     scheduled_time: datetime
-    eta: datetime
+    eta: Optional[datetime] = None  # None for passed/at-stop
+    actual_arrived_at: Optional[datetime] = None  # When bus actually reached this stop
     delay_minutes: int
-    status: str  # on_time / delayed / early
+    status: str  # on_time / delayed / early / at_stop
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 

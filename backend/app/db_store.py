@@ -4,8 +4,19 @@ from typing import Dict, Optional
 from sqlalchemy.orm import Session
 import bcrypt
 
-from .models import Bus, DriverSession, Location, DelayInfo, Route, Stop
+from .models import Bus, DriverSession, Location, DelayInfo, Route, Stop, StopArrival
 from .config import settings
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distance between two points in km."""
+    import math
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return R * c
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password using bcrypt directly"""
@@ -80,7 +91,39 @@ class DatabaseStore:
             "latitude": latitude,
             "longitude": longitude,
             "recorded_at": recorded_at,
+            "session_id": session.session_id if session else None,
         }
+
+    def record_stop_arrivals_if_near(
+        self, bus_number: str, session_id: Optional[int],
+        latitude: float, longitude: float, recorded_at: datetime
+    ) -> None:
+        """If bus is within 20m of any stop not yet recorded for this session, record arrival."""
+        if session_id is None:
+            return
+        stops_raw = self.get_stops_for_bus(bus_number)
+        if not stops_raw:
+            return
+        arrived_stop_ids = {
+            a.stop_id for a in self.db.query(StopArrival).filter(
+                StopArrival.session_id == session_id
+            ).all()
+        }
+        for stop in stops_raw:
+            if stop["stop_id"] in arrived_stop_ids:
+                continue
+            dist_km = _haversine_km(latitude, longitude, stop["latitude"], stop["longitude"])
+            if dist_km <= 0.02:  # 20 meters
+                self.db.add(StopArrival(session_id=session_id, stop_id=stop["stop_id"], arrived_at=recorded_at))
+                self.db.commit()
+                arrived_stop_ids.add(stop["stop_id"])
+
+    def get_stop_arrivals_for_session(self, session_id: Optional[int]) -> Dict[int, datetime]:
+        """Return {stop_id: arrived_at} for the given session."""
+        if session_id is None:
+            return {}
+        rows = self.db.query(StopArrival).filter(StopArrival.session_id == session_id).all()
+        return {r.stop_id: r.arrived_at for r in rows}
 
     def get_last_location(self, bus_number: str) -> Optional[Dict]:
         """Get most recent location for bus"""
@@ -95,6 +138,7 @@ class DatabaseStore:
             "latitude": location.latitude,
             "longitude": location.longitude,
             "recorded_at": location.recorded_at,
+            "session_id": location.session_id,
         }
 
     def save_delay(self, bus_number: str, delay_minutes: int, current_stop: Optional[str], next_stop: Optional[str]) -> None:
@@ -162,6 +206,7 @@ class DatabaseStore:
                 scheduled = stop.scheduled_departure
             
             result.append({
+                "stop_id": stop.stop_id,
                 "name": stop.stop_name,
                 "scheduled": scheduled,
                 "latitude": stop.latitude,

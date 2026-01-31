@@ -181,53 +181,30 @@
       align-items: start;
     }
 
-    .time-column {
-      text-align: right;
+    .time-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      text-align: center;
+      min-width: 180px;
     }
 
-    .scheduled-time {
-      font-size: 12px;
+    .time-col {
+      font-size: 11px;
       color: #94a3b8;
       margin-bottom: 2px;
     }
 
-    .eta-time {
-      font-size: 14px;
+    .time-val {
+      font-size: 13px;
       font-weight: 600;
       color: #fff;
     }
 
-    .eta-time.delayed {
-      color: #f87171;
-    }
-
-    .eta-time.on_time {
-      color: #4ade80;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      margin-top: 4px;
-    }
-
-    .badge.on_time {
-      background: #16a34a;
-      color: #fff;
-    }
-
-    .badge.delayed {
-      background: #dc2626;
-      color: #fff;
-    }
-
-    .badge.early {
-      background: #2563eb;
-      color: #fff;
-    }
+    .time-val.delayed { color: #f87171; }
+    .time-val.on_time { color: #4ade80; }
+    .time-val.early { color: #60a5fa; }
+    .time-val.at_stop { color: #fbbf24; }
 
     .loading {
       text-align: center;
@@ -529,20 +506,33 @@
         const stopTop = stops.length > 1 ? idx * minStopSpacingPx : 0;
         const dotClass = `timeline-preview-stop-dot ${isPassed ? 'passed' : ''} ${isCurrent ? 'current' : ''}`;
 
+        const actualText = stop.actual_arrived_at ? fmtTime(stop.actual_arrived_at) : '—';
+        let etaText = '—';
+        if (stop.status === 'at_stop') etaText = 'At stop';
+        else if (stop.status === 'arrived') etaText = 'Arrived';
+        else if (stop.eta) etaText = fmtTime(stop.eta);
+
         html += `
           <div class="timeline-preview-stop" style="top: ${stopTop}px;">
             <div class="${dotClass}" style="background: ${isFirst ? '#16a34a' : isLast ? '#dc2626' : '#2563eb'};"></div>
             <div class="stop-content">
               <div>
                 <div class="timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</div>
-                <div class="timeline-preview-stop-details">
-                  Scheduled: ${fmtTime(stop.scheduled_time)} · ETA: ${fmtTime(stop.eta)} · ${fmtDelay(stop.delay_minutes)} · ${distance.toFixed(1)} km
-                </div>
+                <div class="timeline-preview-stop-details">${distance.toFixed(1)} km</div>
               </div>
-              <div class="time-column">
-                <div class="scheduled-time">Scheduled</div>
-                <div class="eta-time ${stop.status}">${fmtTime(stop.eta)}</div>
-                <div class="badge ${stop.status}">${fmtDelay(stop.delay_minutes)}</div>
+              <div class="time-columns">
+                <div>
+                  <div class="time-col">Scheduled</div>
+                  <div class="time-val">${fmtTime(stop.scheduled_time)}</div>
+                </div>
+                <div>
+                  <div class="time-col">Actual arrived</div>
+                  <div class="time-val">${actualText}</div>
+                </div>
+                <div>
+                  <div class="time-col">ETA</div>
+                  <div class="time-val ${stop.status}">${etaText}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -590,7 +580,7 @@
           // Request notification permission and show notification
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification(`🚌 Bus Approaching ${stop.stop_name}`, {
-              body: `The bus is approximately ${distanceToStop.toFixed(1)} km away. ETA: ${fmtTime(stop.eta)}`,
+              body: `The bus is approximately ${distanceToStop.toFixed(1)} km away. ETA: ${stop.eta ? fmtTime(stop.eta) : '—'}`,
               icon: '🚌',
               tag: `stop-${stop.stop_name}`,
             });
@@ -599,7 +589,7 @@
             Notification.requestPermission().then(permission => {
               if (permission === 'granted') {
                 new Notification(`🚌 Bus Approaching ${stop.stop_name}`, {
-                  body: `The bus is approximately ${distanceToStop.toFixed(1)} km away. ETA: ${fmtTime(stop.eta)}`,
+                  body: `The bus is approximately ${distanceToStop.toFixed(1)} km away. ETA: ${stop.eta ? fmtTime(stop.eta) : '—'}`,
                   icon: '🚌',
                   tag: `stop-${stop.stop_name}`,
                 });
