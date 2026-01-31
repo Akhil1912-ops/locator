@@ -149,15 +149,12 @@ class DatabaseStore:
             # Use today's date + the time from start_time (since start_time is daily)
             scheduled = None
             if start_time and stop.scheduled_arrival_minutes is not None:
-                # Extract time from start_time and apply to today
+                # start_time is stored as UTC (admin sends IST converted to UTC)
                 if start_time.tzinfo is None:
-                    start_time = start_time.replace(tzinfo=india_tz)
-                else:
-                    start_time = start_time.astimezone(india_tz)
+                    start_time = start_time.replace(tzinfo=timezone.utc)
+                start_time_ist = start_time.astimezone(india_tz)
                 today = datetime.now(india_tz).replace(hour=0, minute=0, second=0, microsecond=0)
-                start_hour = start_time.hour
-                start_minute = start_time.minute
-                today_start = today.replace(hour=start_hour, minute=start_minute)
+                today_start = today.replace(hour=start_time_ist.hour, minute=start_time_ist.minute)
                 scheduled = today_start + timedelta(minutes=stop.scheduled_arrival_minutes)
             elif stop.scheduled_arrival:
                 scheduled = stop.scheduled_arrival

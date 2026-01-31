@@ -40,9 +40,11 @@ fun BusDriverTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val w = (view.context as? Activity)?.window ?: return@SideEffect
-            w.statusBarColor = Color.Transparent.toArgb()
-            WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = true
+            try {
+                val w = (view.context as? Activity)?.window ?: return@SideEffect
+                w.statusBarColor = Color.Transparent.toArgb()
+                WindowCompat.getInsetsController(w, view).isAppearanceLightStatusBars = true
+            } catch (_: Exception) { }
         }
     }
     MaterialTheme(

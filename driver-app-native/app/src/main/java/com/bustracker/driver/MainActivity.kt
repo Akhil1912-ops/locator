@@ -39,9 +39,13 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
                     var start by remember { mutableStateOf<String?>(null) }
                     LaunchedEffect(Unit) {
-                        val prefs = AppPreferences(this@MainActivity)
-                        val token = prefs.sessionToken.first()
-                        start = if (token.isNullOrBlank()) "login" else "tracking"
+                        start = try {
+                            val prefs = AppPreferences(this@MainActivity)
+                            val token = prefs.sessionToken.first()
+                            if (token.isNullOrBlank()) "login" else "tracking"
+                        } catch (e: Exception) {
+                            "login"
+                        }
                     }
                     when (val s = start) {
                         null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

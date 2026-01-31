@@ -1,8 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends
+import logging
 import math
 
 from .. import schemas
+
+logger = logging.getLogger(__name__)
 from ..deps import get_bus_from_session, get_store
 from ..db_store import DatabaseStore
 from ..websocket_manager import websocket_manager
@@ -45,17 +48,20 @@ def calculate_automatic_delay(store: DatabaseStore, bus_number: str, current_lat
     nearest_stop = stops[nearest_stop_idx]
     
     # Calculate scheduled arrival time for nearest stop
-    if nearest_stop.get("scheduled_arrival_minutes") is not None:
-        # Use start_time + scheduled_arrival_minutes
-        today = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        start_hour = bus.start_time.hour
-        start_minute = bus.start_time.minute
-        today_start = today.replace(hour=start_hour, minute=start_minute)
-        scheduled_arrival = today_start + timedelta(minutes=nearest_stop["scheduled_arrival_minutes"])
-    elif nearest_stop.get("scheduled"):
+    # Use pre-calculated scheduled from get_stops_for_bus (already in India/Kolkata)
+    if nearest_stop.get("scheduled"):
         scheduled_arrival = nearest_stop["scheduled"]
-        if isinstance(scheduled_arrival, str):
-            scheduled_arrival = datetime.fromisoformat(scheduled_arrival.replace('Z', '+00:00'))
+    elif nearest_stop.get("scheduled_arrival_minutes") is not None:
+        from zoneinfo import ZoneInfo
+        try:
+            india_tz = ZoneInfo("Asia/Kolkata")
+        except Exception:
+            india_tz = timezone(timedelta(hours=5, minutes=30))
+        start_dt = bus.start_time.replace(tzinfo=timezone.utc) if bus.start_time.tzinfo is None else bus.start_time
+        start_ist = start_dt.astimezone(india_tz)
+        today_ist = datetime.now(india_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = today_ist.replace(hour=start_ist.hour, minute=start_ist.minute)
+        scheduled_arrival = today_start + timedelta(minutes=nearest_stop["scheduled_arrival_minutes"])
     else:
         return 0, None, None
     
@@ -86,6 +92,7 @@ async def update_location(
     bus_number: str = Depends(get_bus_from_session),
     store: DatabaseStore = Depends(get_store),
 ):
+    logger.info("Location received: bus=%s lat=%.6f lon=%.6f", bus_number, payload.latitude, payload.longitude)
     saved = store.save_location(bus_number, payload.latitude, payload.longitude, payload.recorded_at)
     
     # Automatically calculate delay based on GPS position

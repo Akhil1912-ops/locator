@@ -576,10 +576,9 @@
                 <small style="color: #666; font-size: 12px;">Leave empty to keep current password (when editing)</small>
             </div>
             <div class="form-group">
-                <label>Start Time (When bus departs from start point daily)</label>
+                <label>Start Time (IST - India/Mumbai)</label>
                 <input type="time" id="busStartTime" required>
-                <small style="color: #666; font-size: 12px;">Daily departure time (e.g., 06:00 for 6 AM, 18:00 for 6
-                    PM). This is the reference time for calculating arrival times at stops.</small>
+                <small style="color: #666; font-size: 12px;">Daily departure time in India timezone (e.g., 06:00 for 6 AM, 18:00 for 6 PM). All times on this page are in IST.</small>
             </div>
 
             <div class="form-group">
@@ -835,7 +834,8 @@
             return new Intl.DateTimeFormat('en-IN', {
                 timeZone: 'Asia/Kolkata',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
+                hour12: true
             }).format(d);
         }
 
@@ -849,7 +849,8 @@
                 month: 'short',
                 day: '2-digit',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
+                hour12: true
             }).format(d);
         }
 
@@ -1055,7 +1056,7 @@
                     return;
                 }
 
-                let html = '<table><thead><tr><th>Bus Number</th><th>Started At</th><th>Last Location</th><th>Last Update</th></tr></thead><tbody>';
+                let html = '<table><thead><tr><th>Bus Number</th><th>Started At (IST)</th><th>Last Location</th><th>Last Update (IST)</th></tr></thead><tbody>';
                 drivers.forEach(driver => {
                     const lastLoc = driver.last_location;
                     html += `

@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 data class TrackingUiState(
     val busNumber: String = "",
     val isTracking: Boolean = false,
+    val sendError: String? = null,
 )
 
 class TrackingViewModel(application: Application) : AndroidViewModel(application) {
@@ -29,11 +30,7 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
     val navigateToLogin = _navigateToLogin.asSharedFlow()
 
     init {
-        viewModelScope.launch {
-            val bus = prefs.getBusNumber() ?: ""
-            val tracking = prefs.isTracking()
-            _state.value = TrackingUiState(busNumber = bus, isTracking = tracking)
-        }
+        viewModelScope.launch { refreshState() }
     }
 
     fun startTracking() {
@@ -48,7 +45,8 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             LocationTrackerService.stop(app)
             prefs.setTracking(false)
-            _state.value = _state.value.copy(isTracking = false)
+            prefs.setLastSendError(null)
+            _state.value = _state.value.copy(isTracking = false, sendError = null)
         }
     }
 
@@ -66,7 +64,15 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val bus = prefs.getBusNumber() ?: ""
             val tracking = prefs.isTracking()
-            _state.value = TrackingUiState(busNumber = bus, isTracking = tracking)
+            val err = if (tracking) prefs.getLastSendError() else null
+            _state.value = _state.value.copy(busNumber = bus, isTracking = tracking, sendError = err)
+        }
+    }
+
+    fun clearSendError() {
+        viewModelScope.launch {
+            prefs.setLastSendError(null)
+            refreshState()
         }
     }
 }

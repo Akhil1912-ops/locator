@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.bustracker.driver.BuildConfig
 
 @Composable
 fun LoginScreen(
@@ -124,6 +125,12 @@ fun LoginScreen(
                     Text("Login")
                 }
             }
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "Build: ${kotlin.runCatching { BuildConfig.BUILD_TIME }.getOrElse { "?" } }",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
         }
     }
 }

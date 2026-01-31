@@ -45,11 +45,14 @@ def calculate_bus_status(store: DatabaseStore, bus_number: str, last_location_ti
         return "not_started"
     
     # Check if bus has started (current time >= start_time today)
+    # start_time is stored as UTC (admin sends IST as UTC)
     now = datetime.now(timezone.utc)
+    if bus.start_time.tzinfo is None:
+        start_utc = bus.start_time.replace(tzinfo=timezone.utc)
+    else:
+        start_utc = bus.start_time
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    start_hour = bus.start_time.hour
-    start_minute = bus.start_time.minute
-    today_start = today.replace(hour=start_hour, minute=start_minute)
+    today_start = today.replace(hour=start_utc.hour, minute=start_utc.minute)
     
     if now < today_start:
         return "not_started"
@@ -335,7 +338,7 @@ def passenger_stop_etas(bus_number: str, store: DatabaseStore = Depends(get_stor
         scheduled = entry.get("scheduled")
         if isinstance(scheduled, datetime):
             if scheduled.tzinfo is None:
-                scheduled = scheduled.replace(tzinfo=india_tz)
+                scheduled = scheduled.replace(tzinfo=timezone.utc).astimezone(india_tz)
         elif scheduled is None:
             # Calculate from start_time + scheduled_arrival_minutes if available
             if entry.get("scheduled_arrival_minutes") is not None:

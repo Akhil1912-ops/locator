@@ -1,5 +1,6 @@
 package com.bustracker.driver.location
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,16 +8,19 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import com.bustracker.driver.MainActivity
 import com.bustracker.driver.R
 import com.bustracker.driver.data.api.ApiClient
 import com.bustracker.driver.data.api.LocationUpdateRequest
 import com.bustracker.driver.data.prefs.AppPreferences
+import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -36,7 +40,8 @@ private const val CHANNEL_ID = "bus_tracking"
 private const val NOTIF_TRACKING = 1
 private const val NOTIF_ALARM = 2
 private const val INTERVAL_MS = 10_000L
-private const val MIN_DISTANCE_M = 25f
+private const val MIN_INTERVAL_MS = 5_000L
+private const val MIN_DISTANCE_M = 0f
 private const val ALARM_CHECK_MS = 30_000L
 private const val ALARM_THRESHOLD_MS = 60_000L
 
@@ -44,7 +49,7 @@ class LocationTrackerService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var prefs: AppPreferences
-    private var fusedClient: com.google.android.gms.location.FusedLocationProviderClient? = null
+    private var fusedClient: FusedLocationProviderClient? = null
     private var locationCallback: LocationCallback? = null
 
     override fun onCreate() {
@@ -55,24 +60,36 @@ class LocationTrackerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val notif = buildTrackingNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIF_TRACKING, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+        } else {
+            startForeground(NOTIF_TRACKING, notif)
+        }
         scope.launch {
-            val baseUrl = prefs.getApiBaseUrl()
-            val token = prefs.getSessionToken()
-            if (baseUrl.isNullOrBlank() || token.isNullOrBlank()) {
+            val baseUrl = prefs.getApiBaseUrl()?.trim()?.takeIf { it.isNotBlank() }
+            val token = prefs.getSessionToken()?.takeIf { it.isNotBlank() }
+            if (baseUrl == null || token == null) {
+                prefs.setLastSendError("Missing server URL or session - please log in again")
                 stopSelf(startId)
                 return@launch
             }
             ApiClient.setBaseUrl(baseUrl)
-            val notif = buildTrackingNotification()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(NOTIF_TRACKING, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
-            } else {
-                startForeground(NOTIF_TRACKING, notif)
+            if (!hasLocationPermission()) {
+                prefs.setLastSendError("Location permission required")
+                stopSelf(startId)
+                return@launch
             }
             startLocationUpdates(token)
+            sendLastKnownLocation(token)
             startAlarmCheckLoop()
         }
         return START_STICKY
+    }
+
+    private fun hasLocationPermission(): Boolean {
+        return ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -122,10 +139,10 @@ class LocationTrackerService : Service() {
     private fun startLocationUpdates(token: String) {
         val client = fusedClient ?: return
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, INTERVAL_MS)
-            .setMinUpdateIntervalMillis(5000)
+            .setMinUpdateIntervalMillis(MIN_INTERVAL_MS)
             .setMinUpdateDistanceMeters(MIN_DISTANCE_M)
             .setWaitForAccurateLocation(false)
-            .setMaxUpdates(0)
+            .setMaxUpdates(Int.MAX_VALUE)
             .build()
 
         val cb = object : LocationCallback() {
@@ -138,6 +155,22 @@ class LocationTrackerService : Service() {
         client.requestLocationUpdates(request, cb, Looper.getMainLooper())
     }
 
+    private fun sendLastKnownLocation(token: String) {
+        val client = fusedClient ?: return
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) return
+        @Suppress("MissingPermission")
+        client.lastLocation.addOnSuccessListener { location ->
+            location?.let { scope.launch { sendAndRecord(token, it) } }
+        }
+    }
+
+    private fun formatRecordedAt(): String {
+        val s = Instant.now().toString()
+        return if (s.contains(".") && s.length > 27) s.take(26) + "Z" else s
+    }
+
     private suspend fun sendAndRecord(token: String, location: android.location.Location) =
         withContext(Dispatchers.IO) {
             try {
@@ -145,13 +178,24 @@ class LocationTrackerService : Service() {
                 val req = LocationUpdateRequest(
                     latitude = location.latitude,
                     longitude = location.longitude,
-                    recordedAt = Instant.now().toString()
+                    recordedAt = formatRecordedAt()
                 )
                 val res = api.sendLocation(token, req)
                 if (res.isSuccessful) {
                     prefs.setLastLocationSentMs(System.currentTimeMillis())
+                    prefs.setLastSendError(null)
+                } else {
+                    val msg = when (res.code()) {
+                        401 -> "Session expired - log in again"
+                        404, 500 -> "Server error (${res.code()})"
+                        else -> "Failed to send (${res.code()})"
+                    }
+                    prefs.setLastSendError(msg)
                 }
-            } catch (_: Exception) { /* log? */ }
+            } catch (e: Exception) {
+                val msg = "Cannot reach server - check API URL and internet"
+                prefs.setLastSendError(msg)
+            }
         }
 
     private fun stopLocationUpdates() {

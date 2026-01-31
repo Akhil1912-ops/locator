@@ -57,7 +57,9 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun login() {
-        val (bus, pass, url) = _state.value
+        val bus = _state.value.busNumber
+        val pass = _state.value.password
+        val url = _state.value.apiBaseUrl.trim().ifBlank { DEFAULT_BASE_URL }
         if (bus.isBlank() || pass.isBlank()) {
             _state.value = _state.value.copy(error = "Enter bus number and password")
             return
@@ -65,12 +67,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
             try {
-                ApiClient.setBaseUrl(url.ifBlank { DEFAULT_BASE_URL })
+                prefs.setApiBaseUrl(url)
+                ApiClient.setBaseUrl(url)
                 val res = ApiClient.api().login(LoginRequest(busNumber = bus, password = pass))
                 if (res.isSuccessful) {
                     val body = res.body()!!
                     prefs.setLoggedIn(body.sessionToken, bus)
-                    prefs.setApiBaseUrl(url.ifBlank { DEFAULT_BASE_URL })
                     _state.value = _state.value.copy(loading = false, error = null)
                     _navigateToTracking.emit(Unit)
                 } else {
