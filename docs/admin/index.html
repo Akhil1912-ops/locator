@@ -985,27 +985,6 @@
                         <h3>Tracking Now</h3>
                         <div class="value">${stats.tracking_buses || 0}</div>
                     </div>
-                    <div class="stat-card">
-                        <h3>Active Drivers</h3>
-                        <div class="value">${stats.active_drivers}</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>On-Time Performance</h3>
-                        <div class="value" style="color: ${stats.on_time_percentage >= 80 ? '#4ade80' : stats.on_time_percentage >= 60 ? '#fbbf24' : '#f87171'};">${stats.on_time_percentage || 0}%</div>
-                        <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">${stats.on_time_count || 0} / ${stats.total_tracked_buses || 0} buses</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Avg Delay</h3>
-                        <div class="value" style="color: ${Math.abs(stats.average_delay_minutes || 0) <= 2 ? '#4ade80' : Math.abs(stats.average_delay_minutes || 0) <= 5 ? '#fbbf24' : '#f87171'};">${stats.average_delay_minutes >= 0 ? '+' : ''}${stats.average_delay_minutes || 0} min</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Routes Configured</h3>
-                        <div class="value">${stats.buses_with_routes || 0}</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Locations</h3>
-                        <div class="value">${stats.total_locations}</div>
-                    </div>
                 `;
             } catch (err) {
                 console.error('Error loading stats:', err);
