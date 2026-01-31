@@ -830,18 +830,29 @@
 
         function formatTimeIST(dateLike) {
             if (!dateLike) return '—';
-            const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+            let d = dateLike instanceof Date ? dateLike : null;
+            if (!d) {
+                let s = String(dateLike);
+                if (s && !s.endsWith('Z') && !s.includes('+') && s.match(/^\d{4}-\d{2}-\d{2}T/)) s = s + 'Z';
+                d = new Date(s);
+            }
             if (Number.isNaN(d.getTime())) return '—';
             return new Intl.DateTimeFormat('en-IN', {
                 timeZone: 'Asia/Kolkata',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
+                hour12: true
             }).format(d);
         }
 
         function formatDateTimeIST(dateLike) {
             if (!dateLike) return '—';
-            const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+            let d = dateLike instanceof Date ? dateLike : null;
+            if (!d) {
+                let s = String(dateLike);
+                if (s && !s.endsWith('Z') && !s.includes('+') && s.match(/^\d{4}-\d{2}-\d{2}T/)) s = s + 'Z';
+                d = new Date(s);
+            }
             if (Number.isNaN(d.getTime())) return '—';
             return new Intl.DateTimeFormat('en-IN', {
                 timeZone: 'Asia/Kolkata',
@@ -849,12 +860,18 @@
                 month: 'short',
                 day: '2-digit',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
+                hour12: true
             }).format(d);
         }
 
         function getIstTimeParts(dateLike) {
-            const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+            let d = dateLike instanceof Date ? dateLike : null;
+            if (!d) {
+                let s = String(dateLike);
+                if (s && !s.endsWith('Z') && !s.includes('+') && s.match(/^\d{4}-\d{2}-\d{2}T/)) s = s + 'Z';
+                d = new Date(s);
+            }
             if (Number.isNaN(d.getTime())) return { hour: 0, minute: 0 };
             const parts = new Intl.DateTimeFormat('en-IN', {
                 timeZone: 'Asia/Kolkata',
@@ -868,7 +885,12 @@
         }
 
         function getIstDateParts(dateLike) {
-            const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+            let d = dateLike instanceof Date ? dateLike : null;
+            if (!d) {
+                let s = String(dateLike);
+                if (s && !s.endsWith('Z') && !s.includes('+') && s.match(/^\d{4}-\d{2}-\d{2}T/)) s = s + 'Z';
+                d = new Date(s);
+            }
             const parts = new Intl.DateTimeFormat('en-IN', {
                 timeZone: 'Asia/Kolkata',
                 year: 'numeric',
@@ -1351,28 +1373,21 @@
 
             try {
                 if (currentBusNumber) {
-                    // Update existing bus
-                    const params = new URLSearchParams();
-                    if (password) params.append('password', password);
-
-                    // Always send start_time, even if empty (to clear it if needed)
+                    // Update existing bus - use JSON body to avoid URL encoding issues with start_time
+                    const body = {};
+                    if (password) body.password = password;
                     if (startTime && startTime.trim() !== '') {
-                        // Convert time (HH:mm) to IST-based UTC ISO format
                         const [hours, minutes] = startTime.split(':').map(v => parseInt(v, 10));
-                        const isoTime = buildIstIsoTime(hours, minutes);
-                        params.append('start_time', isoTime);
-                        console.log('Sending start_time:', { startTime, hours, minutes, isoTime });
+                        body.start_time = buildIstIsoTime(hours, minutes);
                     } else {
-                        params.append('start_time', '');
-                        console.log('Sending empty start_time to clear it');
+                        body.start_time = '';
                     }
-                    params.append('is_active', isActive);
+                    body.is_active = isActive;
 
-                    console.log('Update params:', params.toString());
-
-                    const res = await fetch(`${API_BASE}/admin/buses/${busNumber}?${params}`, {
+                    const res = await fetch(`${API_BASE}/admin/buses/${busNumber}`, {
                         method: 'PUT',
-                        headers: getHeaders()
+                        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
                     });
 
                     if (!res.ok) {
@@ -1639,12 +1654,11 @@
                     if (!timeStr.endsWith('Z') && !timeStr.includes('+') && !timeStr.includes('-', 10)) {
                         timeStr = timeStr + 'Z'; // Append Z to indicate UTC
                     }
-                    const startDate = new Date(timeStr);
-                    // Use today's date with the time from start_time in IST
-                    const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-                    const istParts = getIstTimeParts(startDate);
-                    istNow.setHours(istParts.hour, istParts.minute, 0, 0);
-                    startDateTime = istNow;
+                    const istParts = getIstTimeParts(new Date(timeStr));
+                    const { year, month, day } = getIstDateParts(new Date());
+                    const utcOffsetMs = 5.5 * 60 * 60 * 1000;
+                    const utcMillis = Date.UTC(year, month - 1, day, istParts.hour, istParts.minute, 0, 0) - utcOffsetMs;
+                    startDateTime = new Date(utcMillis);
                     console.log('Start time calculated:', {
                         startTime,
                         timeStr,
@@ -1674,9 +1688,7 @@
                 if (!startDateTime || stop.scheduled_arrival_minutes === null || stop.scheduled_arrival_minutes === undefined) {
                     return null;
                 }
-                const arrivalTime = new Date(startDateTime);
-                arrivalTime.setMinutes(arrivalTime.getMinutes() + stop.scheduled_arrival_minutes);
-                return arrivalTime;
+                return new Date(startDateTime.getTime() + stop.scheduled_arrival_minutes * 60 * 1000);
             }
 
             let html = `

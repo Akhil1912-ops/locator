@@ -435,12 +435,18 @@
 
     function fmtTime(ts) {
       if (!ts) return '—';
-      const d = ts instanceof Date ? ts : new Date(ts);
+      let d = ts instanceof Date ? ts : null;
+      if (!d) {
+        let s = String(ts);
+        if (s && !s.endsWith('Z') && !s.includes('+') && s.match(/^\d{4}-\d{2}-\d{2}T/)) s = s + 'Z';
+        d = new Date(s);
+      }
       if (Number.isNaN(d.getTime())) return '—';
       return new Intl.DateTimeFormat('en-IN', {
         timeZone: 'Asia/Kolkata',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: true
       }).format(d);
     }
 

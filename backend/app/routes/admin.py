@@ -1,7 +1,8 @@
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, HTTPException, status, Depends, Header, Query, Request
+from fastapi import APIRouter, HTTPException, status, Depends, Header, Query, Request, Body
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 import secrets
 import string
 
@@ -15,6 +16,14 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 # Simple admin password (in production, use proper auth)
 ADMIN_PASSWORD = "admin123"  # Change this!
+
+
+class BusUpdateBody(BaseModel):
+    """JSON body for bus update - avoids URL encoding issues with start_time"""
+    password: Optional[str] = None
+    route_name: Optional[str] = None
+    start_time: Optional[str] = None  # ISO format, UTC (e.g. 2026-01-31T14:00:00.000Z for 19:30 IST)
+    is_active: Optional[bool] = None
 
 
 def verify_admin_password(admin_password: str = Header(..., alias="X-Admin-Password")):
@@ -36,7 +45,7 @@ def list_buses(
         {
             "bus_number": bus.bus_number,
             "route_name": bus.route_name,
-            "start_time": bus.start_time.replace(tzinfo=timezone.utc).isoformat() if bus.start_time else None,
+            "start_time": _start_time_to_iso(bus),
             "is_active": bus.is_active,
             "created_at": bus.created_at.isoformat() if bus.created_at else None,
         }
@@ -63,14 +72,20 @@ def create_bus(
     
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
-    # Parse start_time if provided
+    # Parse start_time if provided - store as naive UTC
     start_time_dt = None
     if start_time:
         try:
-            start_time_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            s = start_time.strip().replace('Z', '+00:00')
+            if not ('+' in s or s.count('-') > 2):
+                s = s + '+00:00'
+            dt = datetime.fromisoformat(s)
+            if dt.tzinfo:
+                dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+            start_time_dt = dt
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid start_time format. Use ISO format.")
-    
+
     bus = Bus(
         bus_number=bus_number,
         password_hash=password_hash,
@@ -85,70 +100,89 @@ def create_bus(
     return {
         "bus_number": bus.bus_number,
         "route_name": bus.route_name,
-        "start_time": bus.start_time.isoformat() if bus.start_time else None,
+        "start_time": _start_time_to_iso(bus),
         "is_active": bus.is_active,
     }
+
+
+def _parse_and_store_start_time(bus: Bus, start_time: Optional[str]) -> None:
+    """Parse start_time (ISO UTC) and store as naive UTC in DB (avoids SQLite timezone quirks)."""
+    if start_time is None:
+        return
+    if start_time == "":
+        bus.start_time = None
+        return
+    try:
+        # Parse as UTC - ensure Z or +00:00
+        s = start_time.strip().replace('Z', '+00:00')
+        if not ('+' in s or s.count('-') > 2):  # No timezone suffix
+            s = s + '+00:00'
+        dt = datetime.fromisoformat(s)
+        # Normalize to UTC and store as naive (SQLite has no timezone)
+        if dt.tzinfo:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        bus.start_time = dt
+    except (ValueError, AttributeError) as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid start_time format: {e}")
+
+
+def _start_time_to_iso(bus: Bus) -> Optional[str]:
+    """Return start_time as ISO string with Z (always UTC)."""
+    if not bus.start_time:
+        return None
+    dt = bus.start_time
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    s = dt.isoformat()
+    return s if s.endswith('Z') or '+' in s else s + 'Z'
 
 
 @router.put("/buses/{bus_number}")
 def update_bus(
     bus_number: str,
+    body: Optional[BusUpdateBody] = Body(None),
     password: Optional[str] = Query(None),
     route_name: Optional[str] = Query(None),
-    start_time: Optional[str] = Query(None),  # ISO format datetime string
+    start_time: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(None),
     db: Session = Depends(get_db),
     _: bool = Depends(verify_admin_password),
 ):
-    """Update a bus"""
+    """Update a bus. Prefer JSON body to avoid URL encoding issues with start_time."""
     import bcrypt
-    
-    print(f"DEBUG update_bus: Called with bus_number={bus_number}")
-    print(f"DEBUG update_bus: Parameters received - password={password is not None}, route_name={route_name}, start_time={start_time}, is_active={is_active}")
-    print(f"DEBUG update_bus: start_time type: {type(start_time)}, value: '{start_time}'")
-    
+
     bus = db.query(Bus).filter(Bus.bus_number == bus_number).first()
     if not bus:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bus not found")
-    
-    if password:
-        bus.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    if route_name is not None:
-        bus.route_name = route_name
-        print(f"DEBUG: Updated route_name to: {route_name}")
-    if start_time is not None:
-        print(f"DEBUG update_bus: Received start_time='{start_time}' (type={type(start_time)})")
-        if start_time == "":
-            bus.start_time = None
-            print(f"DEBUG: Setting start_time to None (empty string)")
-        else:
-            try:
-                # Parse ISO format datetime string
-                start_time_parsed = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                bus.start_time = start_time_parsed
-                print(f"DEBUG: Parsed and set start_time to: {bus.start_time}")
-            except ValueError as e:
-                print(f"DEBUG: Error parsing start_time '{start_time}': {e}")
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid start_time format: {e}")
+
+    if body:
+        if body.password:
+            bus.password_hash = bcrypt.hashpw(body.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        if body.route_name is not None:
+            bus.route_name = body.route_name
+        if body.start_time is not None:
+            _parse_and_store_start_time(bus, body.start_time)
+        if body.is_active is not None:
+            bus.is_active = body.is_active
     else:
-        print(f"DEBUG update_bus: start_time parameter is None, not updating")
-    if is_active is not None:
-        bus.is_active = is_active
-    
-    print(f"DEBUG: Before commit, bus.start_time = {bus.start_time}")
+        if password:
+            bus.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        if route_name is not None:
+            bus.route_name = route_name
+        if start_time is not None:
+            _parse_and_store_start_time(bus, start_time)
+        if is_active is not None:
+            bus.is_active = is_active
+
     db.commit()
     db.refresh(bus)
-    print(f"DEBUG: After commit and refresh, bus.start_time = {bus.start_time}")
-    
-    response = {
+
+    return {
         "bus_number": bus.bus_number,
         "route_name": bus.route_name,
-        "start_time": bus.start_time.replace(tzinfo=timezone.utc).isoformat() if bus.start_time else None,
+        "start_time": _start_time_to_iso(bus),
         "is_active": bus.is_active,
     }
-    print(f"DEBUG: Returning response - start_time value: {response.get('start_time')}")
-    print(f"DEBUG: Full response dict keys: {list(response.keys())}")
-    return response
 
 
 @router.delete("/buses/{bus_number}")
@@ -534,15 +568,22 @@ def get_active_drivers(
             Location.bus_number == session.bus_number
         ).order_by(Location.recorded_at.desc()).first()
         
+        def _dt_iso(dt):
+            if not dt:
+                return None
+            d = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+            s = d.isoformat()
+            return s if (s.endswith('Z') or '+' in s) else s + 'Z'
+
         result.append({
             "bus_number": session.bus_number,
             "session_id": session.session_id,
-            "started_at": session.started_at.isoformat() if session.started_at else None,
-            "expires_at": session.expires_at.isoformat() if session.expires_at else None,
+            "started_at": _dt_iso(session.started_at),
+            "expires_at": _dt_iso(session.expires_at),
             "last_location": {
                 "latitude": last_location.latitude,
                 "longitude": last_location.longitude,
-                "recorded_at": last_location.recorded_at.isoformat() if last_location else None,
+                "recorded_at": _dt_iso(last_location.recorded_at),
             } if last_location else None,
         })
     
