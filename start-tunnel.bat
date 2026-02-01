@@ -7,5 +7,5 @@ echo.
 echo The tunnel URL will appear below. Use it in the driver app and update
 echo the API URL in admin/passenger (or localStorage) if needed.
 echo.
-cloudflared tunnel --url http://127.0.0.1:8000
+cloudflared tunnel --url http://127.0.0.1:8000 --protocol http2
 pause

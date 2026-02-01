@@ -733,8 +733,8 @@
             storedApiBase || (
                 window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                     ? 'http://localhost:8000'
-                    : 'http://10.61.199.218:8000'
-            )
+                    : (window.location.hostname.endsWith('.trycloudflare.com') ? window.location.origin : '')
+            ) || 'http://10.61.199.218:8000'
         );
         let adminPassword = '';
         let currentBusNumber = null;

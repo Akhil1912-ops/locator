@@ -99,31 +99,41 @@ class DatabaseStore:
         latitude: float, longitude: float, recorded_at: datetime
     ) -> None:
         """If bus is within 20m of any stop not yet recorded for this session, record arrival."""
-        if session_id is None:
-            return
-        stops_raw = self.get_stops_for_bus(bus_number)
-        if not stops_raw:
-            return
-        arrived_stop_ids = {
-            a.stop_id for a in self.db.query(StopArrival).filter(
-                StopArrival.session_id == session_id
-            ).all()
-        }
-        for stop in stops_raw:
-            if stop["stop_id"] in arrived_stop_ids:
-                continue
-            dist_km = _haversine_km(latitude, longitude, stop["latitude"], stop["longitude"])
-            if dist_km <= 0.02:  # 20 meters
-                self.db.add(StopArrival(session_id=session_id, stop_id=stop["stop_id"], arrived_at=recorded_at))
-                self.db.commit()
-                arrived_stop_ids.add(stop["stop_id"])
+        try:
+            if session_id is None:
+                return
+            stops_raw = self.get_stops_for_bus(bus_number)
+            if not stops_raw:
+                return
+            arrived_stop_ids = {
+                a.stop_id for a in self.db.query(StopArrival).filter(
+                    StopArrival.session_id == session_id
+                ).all()
+            }
+            for stop in stops_raw:
+                stop_id = stop.get("stop_id")
+                if stop_id is None or stop_id in arrived_stop_ids:
+                    continue
+                lat, lon = stop.get("latitude"), stop.get("longitude")
+                if lat is None or lon is None:
+                    continue
+                dist_km = _haversine_km(latitude, longitude, lat, lon)
+                if dist_km <= 0.02:  # 20 meters
+                    self.db.add(StopArrival(session_id=session_id, stop_id=stop_id, arrived_at=recorded_at))
+                    self.db.commit()
+                    arrived_stop_ids.add(stop_id)
+        except Exception:
+            self.db.rollback()
 
     def get_stop_arrivals_for_session(self, session_id: Optional[int]) -> Dict[int, datetime]:
         """Return {stop_id: arrived_at} for the given session."""
         if session_id is None:
             return {}
-        rows = self.db.query(StopArrival).filter(StopArrival.session_id == session_id).all()
-        return {r.stop_id: r.arrived_at for r in rows}
+        try:
+            rows = self.db.query(StopArrival).filter(StopArrival.session_id == session_id).all()
+            return {r.stop_id: r.arrived_at for r in rows}
+        except Exception:
+            return {}
 
     def get_last_location(self, bus_number: str) -> Optional[Dict]:
         """Get most recent location for bus"""
