@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bus Tracker — Overview for Bus Fleet Owners</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 24px;
+      color: #0f172a;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 12px;
+    }
+    h2 {
+      font-size: 20px;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      color: #1e40af;
+    }
+    h3 {
+      font-size: 16px;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      color: #334155;
+    }
+    p { margin-bottom: 12px; }
+    ul { margin: 12px 0 12px 24px; }
+    li { margin-bottom: 6px; }
+    hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 24px 0;
+    }
+    strong { color: #0f172a; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+    }
+    .passenger-screenshots {
+      margin: 20px 0;
+      padding: 16px 0;
+    }
+    .passenger-screenshots p.intro {
+      margin-bottom: 16px;
+      color: #475569;
+      font-style: italic;
+    }
+    .passenger-screenshots .screenshot-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .passenger-screenshots img {
+      max-width: 100%;
+      width: 140px;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .admin-screenshots {
+      margin: 16px 0;
+      padding: 12px 0;
+    }
+    .admin-screenshots p.intro {
+      margin-bottom: 12px;
+      color: #475569;
+      font-style: italic;
+      font-size: 14px;
+    }
+    .admin-screenshots .screenshot-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .admin-screenshots img {
+      max-width: 100%;
+      width: 190px;
+      height: auto;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    p.note {
+      margin: 12px 0;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border-left: 4px solid #2563eb;
+      font-size: 14px;
+      color: #475569;
+    }
+    @media print {
+      body { padding: 20px; }
+      h1 { font-size: 24px; }
+      h2 { font-size: 18px; margin-top: 24px; }
+      h3 { font-size: 15px; margin-top: 16px; }
+      .passenger-screenshots img { max-width: 100px; }
+      .admin-screenshots img { max-width: 140px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Bus Tracker — Overview for Bus Fleet Owners</h1>
+
+  <h2>What is Bus Tracker?</h2>
+  <p><strong>Bus Tracker</strong> is a system made mainly to improve passenger convenience, while also helping bus owners manage their fleet better.</p>
+  <ul>
+    <li><strong>Passengers can see the live location of the bus</strong> on their phone.</li>
+    <li>The app shows <strong>when the bus will arrive</strong>, so passengers don't have to wait without knowing.</li>
+    <li>The passenger screen has a <strong>very clear and easy interface</strong>, which is the main strength of this system.</li>
+    <li>Because passengers know where the bus is, <strong>confusion, crowding, and repeated phone calls reduce</strong>.</li>
+    <li>This improves <strong>passenger satisfaction and trust</strong> in the transport service.</li>
+  </ul>
+  <p><strong>For the owner:</strong></p>
+  <ul>
+    <li>Fewer complaints from passengers</li>
+    <li>More professional service image</li>
+    <li>Better control over daily operations</li>
+  </ul>
+
+  <div class="passenger-screenshots">
+    <p class="intro"><strong>Passenger interface preview —</strong> These are screenshots taken during testing. This is how the passenger views the bus tracking page on their phone. They show how good the passenger interface is, how simple and understandable it is, and how easy and convenient it would be for passengers with our project.</p>
+    <div class="screenshot-row">
+      <img src="assets/overview-images/passenger-screenshot-1.png" alt="Passenger bus tracking view — Bus status and route timeline" />
+      <img src="assets/overview-images/passenger-screenshot-2.png" alt="Passenger bus tracking view — Live position on timeline" />
+      <img src="assets/overview-images/passenger-screenshot-3.png" alt="Passenger bus tracking view — Upcoming stops with ETAs" />
+    </div>
+  </div>
+
+  <hr>
+
+  <h2>The problem it solves</h2>
+  <p>As a bus owner, you often face:</p>
+  <ul>
+    <li><strong>Passengers call asking:</strong> "Where is the bus? When will it reach my stop?"</li>
+    <li><strong>No clear visibility:</strong> You cannot see where each bus is or if it is running late.</li>
+    <li><strong>Manual coordination:</strong> Drivers and passengers depend on calls or guesswork.</li>
+    <li><strong>Trust:</strong> Passengers prefer operators who show live bus locations and ETAs.</li>
+  </ul>
+  <p>Bus Tracker solves this by giving you <strong>live tracking, automatic ETAs, and a simple way to share tracking with passengers</strong>.</p>
+
+  <hr>
+
+  <h2>Who uses the system?</h2>
+  <p>There are <strong>three parts</strong>, each for a different role:</p>
+
+  <h3>1. Admin Panel — For you (the owner/operator)</h3>
+  <p>A web dashboard where you:</p>
+  <ul>
+    <li><strong>Add and manage buses</strong> — Register each bus with a number and password.</li>
+    <li><strong>Define routes</strong> — Set the route name and add stops (with locations from Google Maps).</li>
+    <li><strong>Set schedules</strong> — Configure the daily start time and when the bus should reach each stop.</li>
+    <li><strong>Monitor live</strong> — See where each bus is on a map and its status (e.g. delay).</li>
+    <li><strong>Share tracking</strong> — Generate short tracking links or codes (e.g. abc123) for each bus.</li>
+  </ul>
+  <p>You use this on a laptop or computer to manage your fleet and routes.</p>
+
+  <div class="admin-screenshots">
+    <p class="intro"><strong>Admin panel interface —</strong> Screenshots of the admin dashboard: fleet overview, bus management, live monitoring, bus settings, and route/stops configuration.</p>
+    <div class="screenshot-row">
+      <img src="assets/overview-images/admin-screenshot-1.png" alt="Admin dashboard — fleet stats and bus list" />
+      <img src="assets/overview-images/admin-screenshot-2.png" alt="Admin — buses and active drivers" />
+      <img src="assets/overview-images/admin-screenshot-3.png" alt="Admin — monitor bus modal" />
+      <img src="assets/overview-images/admin-screenshot-4.png" alt="Admin — edit bus settings" />
+      <img src="assets/overview-images/admin-screenshot-5.png" alt="Admin — manage stops" />
+    </div>
+  </div>
+
+  <h3>2. Driver App — For your drivers</h3>
+  <p>An Android app that each driver uses on their phone:</p>
+  <ul>
+    <li><strong>Login</strong> — Uses the bus number and password you create in the admin panel.</li>
+    <li><strong>Start tracking</strong> — One tap to begin sending live GPS to the server.</li>
+    <li><strong>Runs in background</strong> — Continues tracking even when the screen is off or the app is minimized.</li>
+    <li><strong>No extra work</strong> — Once started, it runs until the driver stops it.</li>
+  </ul>
+  <p>Drivers only need to log in and tap "Start Tracking" before the trip.</p>
+  <p class="note"><strong>Note:</strong> If a bus already has a live tracker device attached (e.g. GPS unit, fleet tracking hardware), there is no need for this driver app. We can connect directly to that bus's live tracking system and use it. The driver app is only needed when no such device is installed. If any kind of device is already on the bus for live tracking, we can use that directly instead.</p>
+
+  <h3>3. Passenger Page — For your passengers</h3>
+  <p>A mobile-friendly webpage that passengers open on their phones:</p>
+  <ul>
+    <li><strong>Track a bus</strong> — They use the link or tracking code you share.</li>
+    <li><strong>See the timeline</strong> — Stops in order with Scheduled time, Actual arrived time, and ETA.</li>
+    <li><strong>Live updates</strong> — The page refreshes as the bus moves.</li>
+    <li><strong>Status</strong> — Shows if the bus is on time, delayed, or at a stop.</li>
+  </ul>
+  <p>Passengers can plan when to leave home and reduce waiting at stops.</p>
+
+  <hr>
+
+  <h2>How it works (in simple terms)</h2>
+  <ol style="margin-left: 24px;">
+    <li><strong>You set up buses and routes</strong> in the admin panel — bus numbers, passwords, stops, and schedules.</li>
+    <li><strong>The driver starts the app</strong> before the trip — GPS is sent to the server every few seconds.</li>
+    <li><strong>The system computes</strong> where the bus is on the route, which stop it's near, and when it will reach the next stops.</li>
+    <li><strong>Passengers open the link</strong> you share — they see live ETAs and status without calling anyone.</li>
+  </ol>
+  <p>Everything runs over the internet. You need the backend running and a tunnel (e.g. Cloudflare) so the driver app and passenger page can reach it from anywhere.</p>
+
+  <hr>
+
+  <h2>Benefits for you as a bus owner</h2>
+  <table>
+    <thead>
+      <tr><th>Benefit</th><th>How it helps</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Fewer calls</strong></td><td>Passengers see live ETAs instead of calling you or the driver.</td></tr>
+      <tr><td><strong>More trust</strong></td><td>Transparent tracking makes your service look more professional.</td></tr>
+      <tr><td><strong>Fleet visibility</strong></td><td>See which buses are active and where they are.</td></tr>
+      <tr><td><strong>Simple sharing</strong></td><td>One short link per bus that you can share on WhatsApp, posters, or your website.</td></tr>
+      <tr><td><strong>Low cost</strong></td><td>Uses your existing phones and internet; no special hardware.</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>Quick summary</h2>
+  <p><strong>Bus Tracker</strong> gives you:</p>
+  <ul>
+    <li><strong>Admin panel</strong> — Manage buses, routes, and schedules; monitor live; share tracking links.</li>
+    <li><strong>Driver app</strong> — Android app that sends live GPS with minimal effort from the driver.</li>
+    <li><strong>Passenger page</strong> — Mobile-friendly page with live ETAs and status for each bus.</li>
+  </ul>
+  <p>You control everything from the admin panel; drivers only need to start the app; passengers get a clear, real-time view of when their bus will arrive.</p>
+</body>
+</html>

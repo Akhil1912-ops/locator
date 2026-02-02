@@ -1,8 +1,19 @@
 # Bus Tracker — Overview for Bus Fleet Owners
 
-## What is it?
+## What is Bus Tracker?
 
-**Bus Tracker** is a complete system that lets you track your buses in real time and share live arrival times with passengers. It is designed for owners who run multiple buses and want better control and visibility.
+**Bus Tracker** is a system made mainly to improve passenger convenience, while also helping bus owners manage their fleet better.
+
+- **Passengers can see the live location of the bus** on their phone.
+- The app shows **when the bus will arrive**, so passengers don't have to wait without knowing.
+- The passenger screen has a **very clear and easy interface**, which is the main strength of this system.
+- Because passengers know where the bus is, **confusion, crowding, and repeated phone calls reduce**.
+- This improves **passenger satisfaction and trust** in the transport service.
+
+**For the owner:**
+- Fewer complaints from passengers
+- More professional service image
+- Better control over daily operations
 
 ---
 
