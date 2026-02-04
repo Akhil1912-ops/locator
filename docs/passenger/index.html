@@ -758,10 +758,7 @@
       const statusCard = document.getElementById("currentStatus");
 
       if (status) {
-        const statusLabel = status.status ? status.status.replace('_', ' ') : 'live';
-        statusTextEl.textContent = `Last seen ${fmtLastSeen(
-          status.last_seen_seconds
-        )} · ${fmtDelay(status.running_delay_minutes)} · ${statusLabel}`;
+        statusTextEl.textContent = `Last seen ${fmtLastSeen(status.last_seen_seconds)}`;
 
         // Check route completion
         const isCompleted = checkRouteCompletion(status, stops || currentStops);
@@ -784,7 +781,7 @@
           checkApproachingStop(status, stops || currentStops);
         }
       } else {
-        statusTextEl.textContent = "Live status unavailable";
+        statusTextEl.textContent = "Last seen —";
         statusCard.textContent = "Bus not tracking yet.";
       }
 
