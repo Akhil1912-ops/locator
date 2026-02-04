@@ -203,7 +203,7 @@
 
     .time-columns {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 8px 12px;
       text-align: center;
       min-width: 0;
@@ -306,7 +306,7 @@
 
       .time-columns {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 6px 8px;
         width: 100%;
         padding: 8px 0;
@@ -642,7 +642,6 @@
         const stopTop = stops.length > 1 ? idx * minStopSpacingPx : 0;
         const dotClass = `timeline-preview-stop-dot ${isPassed ? 'passed' : ''} ${isCurrent ? 'current' : ''}`;
 
-        const actualText = stop.actual_arrived_at ? fmtTime(stop.actual_arrived_at) : '—';
         let etaText = '—';
         if (stop.status === 'at_stop') etaText = 'At stop';
         else if (stop.status === 'arrived') etaText = 'Arrived';
@@ -660,10 +659,6 @@
                 <div>
                   <div class="time-col">Scheduled</div>
                   <div class="time-val">${fmtTime(stop.scheduled_time)}</div>
-                </div>
-                <div>
-                  <div class="time-col">Actual arrived</div>
-                  <div class="time-val">${actualText}</div>
                 </div>
                 <div>
                   <div class="time-col">ETA</div>
