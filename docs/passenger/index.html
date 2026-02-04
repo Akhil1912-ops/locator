@@ -190,51 +190,45 @@
 
     .stop-content {
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px 20px;
-      align-items: start;
+      grid-template-columns: 1fr auto auto;
+      grid-template-rows: auto auto;
+      gap: 2px 16px;
+      align-items: center;
     }
 
-    .stop-name-block {
-      min-width: 0;
+    .stop-name {
+      grid-row: 1;
+      grid-column: 1;
     }
 
     .stop-distance {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-top: 2px;
-    }
-
-    .time-columns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px 16px;
-      text-align: center;
-    }
-
-    .time-col {
+      grid-row: 2;
+      grid-column: 1;
       font-size: 11px;
       color: #94a3b8;
     }
 
     .time-col .label {
-      display: block;
-      margin-bottom: 2px;
       font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: #94a3b8;
     }
 
-    .time-col .val {
-      font-size: 13px;
-      font-weight: 600;
-      color: #fff;
-    }
+    .time-col-scheduled { grid-row: 1 / 3; grid-column: 2; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+    .time-col-scheduled .label { display: block; }
+    .time-col-scheduled .val { display: block; font-size: 13px; font-weight: 600; color: #fff; margin-top: 2px; }
 
-    .time-col .val.delayed { color: #f87171; }
-    .time-col .val.on_time { color: #4ade80; }
-    .time-col .val.early { color: #60a5fa; }
-    .time-col .val.at_stop { color: #fbbf24; }
+    .time-col-eta { grid-row: 1 / 3; grid-column: 3; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+    .time-col-eta .label { display: block; }
+    .time-col-eta .val { display: block; font-size: 13px; font-weight: 600; color: #fff; margin-top: 2px; }
+
+    .time-col-scheduled .val.delayed,
+    .time-col-eta .val.delayed { color: #f87171; }
+    .time-col-scheduled .val.on_time,
+    .time-col-eta .val.on_time { color: #4ade80; }
+    .time-col-scheduled .val.early,
+    .time-col-eta .val.early { color: #60a5fa; }
+    .time-col-scheduled .val.at_stop,
+    .time-col-eta .val.at_stop { color: #fbbf24; }
 
     .loading {
       text-align: center;
@@ -310,19 +304,19 @@
       }
 
       .stop-content {
-        grid-template-columns: 1fr;
-        gap: 8px 12px;
+        gap: 2px 12px;
       }
 
-      .time-columns {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px 12px;
-        padding-top: 8px;
-        border-top: 1px solid #334155;
+      .timeline-preview-stop-name {
+        font-size: 13px;
       }
 
-      .time-col .val {
+      .stop-distance {
+        font-size: 10px;
+      }
+
+      .time-col-scheduled .val,
+      .time-col-eta .val {
         font-size: 12px;
       }
 
@@ -648,19 +642,15 @@
           <div class="timeline-preview-stop" style="top: ${stopTop}px;">
             <div class="${dotClass}" style="background: ${isFirst ? '#16a34a' : isLast ? '#dc2626' : '#2563eb'};"></div>
             <div class="stop-content">
-              <div class="stop-name-block">
-                <div class="timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</div>
-                <div class="stop-distance">${distance.toFixed(1)} km</div>
+              <span class="stop-name timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</span>
+              <span class="stop-distance">${distance.toFixed(1)} km</span>
+              <div class="time-col time-col-scheduled">
+                <span class="label">Scheduled</span>
+                <span class="val">${fmtTime(stop.scheduled_time)}</span>
               </div>
-              <div class="time-columns">
-                <div class="time-col">
-                  <span class="label">Scheduled</span>
-                  <span class="val">${fmtTime(stop.scheduled_time)}</span>
-                </div>
-                <div class="time-col">
-                  <span class="label">ETA</span>
-                  <span class="val ${stop.status}">${etaText}</span>
-                </div>
+              <div class="time-col time-col-eta">
+                <span class="label">ETA</span>
+                <span class="val ${stop.status}">${etaText}</span>
               </div>
             </div>
           </div>

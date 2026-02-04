@@ -380,7 +380,7 @@ def passenger_stop_etas(bus_number: str, store: DatabaseStore = Depends(get_stor
         stop_lon = entry.get("longitude")
         dist_to_stop = haversine_distance(current_lat or 0, current_lon or 0, stop_lat or 0, stop_lon or 0) if current_lat and stop_lat else 999.0
 
-        is_passed = bus_dist > stop_dist + 0.02
+        is_passed = bus_dist >= stop_dist
         is_at_stop = not is_passed and dist_to_stop < 0.02
 
         actual_arrived = None
