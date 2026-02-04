@@ -154,12 +154,6 @@
       font-size: 14px;
       font-weight: 600;
       color: #fff;
-      margin-bottom: 4px;
-    }
-
-    .timeline-preview-stop-details {
-      font-size: 12px;
-      color: #94a3b8;
     }
 
     .bus-marker {
@@ -195,31 +189,38 @@
     }
 
     .stop-content {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: start;
-    }
-
-    .time-columns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px 12px;
-      text-align: center;
-      min-width: 0;
-    }
-
-    .time-col {
-      font-size: 11px;
-      color: #94a3b8;
-      margin-bottom: 2px;
-    }
-
-    .time-val {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 10px;
       font-size: 13px;
+    }
+
+    .stop-sep {
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .stop-info-item {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .stop-info-label {
+      color: #94a3b8;
+      font-size: 11px;
+    }
+
+    .stop-info-val {
       font-weight: 600;
       color: #fff;
     }
+
+    .stop-info-val.delayed { color: #f87171; }
+    .stop-info-val.on_time { color: #4ade80; }
+    .stop-info-val.early { color: #60a5fa; }
+    .stop-info-val.at_stop { color: #fbbf24; }
 
     .time-val.delayed { color: #f87171; }
     .time-val.on_time { color: #4ade80; }
@@ -300,33 +301,16 @@
       }
 
       .stop-content {
-        grid-template-columns: 1fr;
-        gap: 10px;
+        gap: 5px 8px;
+        font-size: 12px;
       }
 
-      .time-columns {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px 8px;
-        width: 100%;
-        padding: 8px 0;
-        border-top: 1px solid #334155;
-      }
-
-      .time-col {
-        font-size: 10px;
-      }
-
-      .time-val {
-        font-size: 13px;
+      .stop-sep {
+        font-size: 11px;
       }
 
       .timeline-preview-stop-name {
         font-size: 15px;
-      }
-
-      .timeline-preview-stop-details {
-        font-size: 12px;
       }
 
       .bus-marker {
@@ -342,12 +326,8 @@
     }
 
     @media (max-width: 380px) {
-      .time-col {
-        font-size: 9px;
-      }
-
-      .time-val {
-        font-size: 12px;
+      .stop-content {
+        font-size: 11px;
       }
 
       .timeline-preview-stop-name {
@@ -651,20 +631,13 @@
           <div class="timeline-preview-stop" style="top: ${stopTop}px;">
             <div class="${dotClass}" style="background: ${isFirst ? '#16a34a' : isLast ? '#dc2626' : '#2563eb'};"></div>
             <div class="stop-content">
-              <div>
-                <div class="timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</div>
-                <div class="timeline-preview-stop-details">${distance.toFixed(1)} km</div>
-              </div>
-              <div class="time-columns">
-                <div>
-                  <div class="time-col">Scheduled</div>
-                  <div class="time-val">${fmtTime(stop.scheduled_time)}</div>
-                </div>
-                <div>
-                  <div class="time-col">ETA</div>
-                  <div class="time-val ${stop.status}">${etaText}</div>
-                </div>
-              </div>
+              <span class="timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</span>
+              <span class="stop-sep">·</span>
+              <span class="stop-info-label">${distance.toFixed(1)} km</span>
+              <span class="stop-sep">·</span>
+              <span class="stop-info-item"><span class="stop-info-label">Scheduled</span> <span class="stop-info-val">${fmtTime(stop.scheduled_time)}</span></span>
+              <span class="stop-sep">·</span>
+              <span class="stop-info-item"><span class="stop-info-label">ETA</span> <span class="stop-info-val ${stop.status}">${etaText}</span></span>
             </div>
           </div>
         `;
