@@ -189,43 +189,52 @@
     }
 
     .stop-content {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px 10px;
-      font-size: 13px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px 20px;
+      align-items: start;
     }
 
-    .stop-sep {
-      color: #64748b;
+    .stop-name-block {
+      min-width: 0;
+    }
+
+    .stop-distance {
       font-size: 12px;
-    }
-
-    .stop-info-item {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 4px;
-    }
-
-    .stop-info-label {
       color: #94a3b8;
-      font-size: 11px;
+      margin-top: 2px;
     }
 
-    .stop-info-val {
+    .time-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+      text-align: center;
+    }
+
+    .time-col {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .time-col .label {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .time-col .val {
+      font-size: 13px;
       font-weight: 600;
       color: #fff;
     }
 
-    .stop-info-val.delayed { color: #f87171; }
-    .stop-info-val.on_time { color: #4ade80; }
-    .stop-info-val.early { color: #60a5fa; }
-    .stop-info-val.at_stop { color: #fbbf24; }
-
-    .time-val.delayed { color: #f87171; }
-    .time-val.on_time { color: #4ade80; }
-    .time-val.early { color: #60a5fa; }
-    .time-val.at_stop { color: #fbbf24; }
+    .time-col .val.delayed { color: #f87171; }
+    .time-col .val.on_time { color: #4ade80; }
+    .time-col .val.early { color: #60a5fa; }
+    .time-col .val.at_stop { color: #fbbf24; }
 
     .loading {
       text-align: center;
@@ -301,12 +310,20 @@
       }
 
       .stop-content {
-        gap: 5px 8px;
-        font-size: 12px;
+        grid-template-columns: 1fr;
+        gap: 8px 12px;
       }
 
-      .stop-sep {
-        font-size: 11px;
+      .time-columns {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px 12px;
+        padding-top: 8px;
+        border-top: 1px solid #334155;
+      }
+
+      .time-col .val {
+        font-size: 12px;
       }
 
       .timeline-preview-stop-name {
@@ -631,13 +648,20 @@
           <div class="timeline-preview-stop" style="top: ${stopTop}px;">
             <div class="${dotClass}" style="background: ${isFirst ? '#16a34a' : isLast ? '#dc2626' : '#2563eb'};"></div>
             <div class="stop-content">
-              <span class="timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</span>
-              <span class="stop-sep">·</span>
-              <span class="stop-info-label">${distance.toFixed(1)} km</span>
-              <span class="stop-sep">·</span>
-              <span class="stop-info-item"><span class="stop-info-label">Scheduled</span> <span class="stop-info-val">${fmtTime(stop.scheduled_time)}</span></span>
-              <span class="stop-sep">·</span>
-              <span class="stop-info-item"><span class="stop-info-label">ETA</span> <span class="stop-info-val ${stop.status}">${etaText}</span></span>
+              <div class="stop-name-block">
+                <div class="timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</div>
+                <div class="stop-distance">${distance.toFixed(1)} km</div>
+              </div>
+              <div class="time-columns">
+                <div class="time-col">
+                  <span class="label">Scheduled</span>
+                  <span class="val">${fmtTime(stop.scheduled_time)}</span>
+                </div>
+                <div class="time-col">
+                  <span class="label">ETA</span>
+                  <span class="val ${stop.status}">${etaText}</span>
+                </div>
+              </div>
             </div>
           </div>
         `;
