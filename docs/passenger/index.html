@@ -190,9 +190,9 @@
 
     .stop-content {
       display: grid;
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto auto auto;
       grid-template-rows: auto auto;
-      gap: 2px 16px;
+      gap: 2px 12px;
       align-items: center;
     }
 
@@ -221,6 +221,8 @@
     .time-col-eta .label { display: block; }
     .time-col-eta .val { display: block; font-size: 13px; font-weight: 600; color: #fff; margin-top: 2px; }
 
+    .notify-btn { grid-row: 1 / 3; grid-column: 4; }
+
     .time-col-scheduled .val.delayed,
     .time-col-eta .val.delayed { color: #f87171; }
     .time-col-scheduled .val.on_time,
@@ -242,6 +244,102 @@
       padding: 12px;
       border-radius: 8px;
       margin-bottom: 16px;
+    }
+
+    /* My Stop Feature Styles */
+    .my-stop-card {
+      background: #1e3a5f;
+      border: 1px solid #2563eb;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .my-stop-card.no-stop {
+      background: #1e293b;
+      border: 1px solid #334155;
+    }
+
+    .my-stop-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .my-stop-label {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .my-stop-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .my-stop-status {
+      font-size: 14px;
+      color: #60a5fa;
+      font-weight: 500;
+    }
+
+    .my-stop-clear {
+      background: transparent;
+      border: 1px solid #475569;
+      color: #94a3b8;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .my-stop-clear:hover {
+      background: #334155;
+      color: #fff;
+    }
+
+    .notify-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      opacity: 0.5;
+      transition: all 0.2s;
+    }
+
+    .notify-btn:hover {
+      opacity: 0.8;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .notify-btn.active {
+      opacity: 1;
+      background: rgba(37, 99, 235, 0.2);
+    }
+
+    .stop-row-selected {
+      background: rgba(37, 99, 235, 0.15);
+      border-radius: 8px;
+      margin-left: -8px;
+      padding-left: 8px;
+      margin-right: -8px;
+      padding-right: 8px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+    }
+
+    .stop-row-selected .timeline-preview-stop-dot {
+      animation: pulse-glow 2s infinite;
     }
 
     /* Mobile responsive */
@@ -304,7 +402,24 @@
       }
 
       .stop-content {
-        gap: 2px 12px;
+        gap: 2px 8px;
+      }
+
+      .notify-btn {
+        font-size: 16px;
+        padding: 2px 4px;
+      }
+
+      .my-stop-card {
+        padding: 10px 12px;
+      }
+
+      .my-stop-name {
+        font-size: 14px;
+      }
+
+      .my-stop-status {
+        font-size: 12px;
       }
 
       .timeline-preview-stop-name {
@@ -355,6 +470,14 @@
   </header>
   <div class="container">
     <div class="status-card" id="currentStatus">Loading bus status…</div>
+    <div class="my-stop-card no-stop" id="myStopCard">
+      <div class="my-stop-info">
+        <span class="my-stop-label">📍 Your stop</span>
+        <span class="my-stop-name" id="myStopName">Tap 🔔 on a stop to get notified</span>
+        <span class="my-stop-status" id="myStopStatus"></span>
+      </div>
+      <button class="my-stop-clear" id="myStopClear" style="display: none;" onclick="clearMyStop()">Clear</button>
+    </div>
     <div class="timeline-wrapper" id="timelineWrapper">
       <div class="timeline-header">
         <div>
@@ -393,6 +516,213 @@
     let ws = null;
     let currentStatus = null;
     let currentStops = [];
+
+    // My Stop feature - selected stop for notifications
+    let myStopState = {
+      stopName: null,
+      stopIndex: null,
+      notified2Away: false,
+      notified1Away: false,
+      notifiedArrived: false
+    };
+
+    // Load saved stop from localStorage
+    function loadMyStop() {
+      try {
+        const saved = localStorage.getItem('myStop');
+        if (saved) {
+          const data = JSON.parse(saved);
+          // Only restore if it's for the same bus
+          if (data.busNumber === busNumber) {
+            myStopState.stopName = data.stopName;
+            myStopState.stopIndex = data.stopIndex;
+            updateMyStopCard();
+          }
+        }
+      } catch (e) {
+        console.error('Error loading saved stop:', e);
+      }
+    }
+
+    // Save selected stop to localStorage
+    function saveMyStop() {
+      try {
+        localStorage.setItem('myStop', JSON.stringify({
+          busNumber: busNumber,
+          stopName: myStopState.stopName,
+          stopIndex: myStopState.stopIndex
+        }));
+      } catch (e) {
+        console.error('Error saving stop:', e);
+      }
+    }
+
+    // Select a stop for notifications
+    function selectMyStop(stopName, stopIndex) {
+      // Request notification permission early
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+
+      myStopState.stopName = stopName;
+      myStopState.stopIndex = stopIndex;
+      myStopState.notified2Away = false;
+      myStopState.notified1Away = false;
+      myStopState.notifiedArrived = false;
+      saveMyStop();
+      updateMyStopCard();
+      // Re-render timeline to show selection
+      if (currentStops.length > 0) {
+        renderTimeline(currentStatus, currentStops);
+      }
+    }
+
+    // Clear selected stop
+    function clearMyStop() {
+      myStopState.stopName = null;
+      myStopState.stopIndex = null;
+      myStopState.notified2Away = false;
+      myStopState.notified1Away = false;
+      myStopState.notifiedArrived = false;
+      localStorage.removeItem('myStop');
+      updateMyStopCard();
+      // Re-render timeline to remove selection
+      if (currentStops.length > 0) {
+        renderTimeline(currentStatus, currentStops);
+      }
+    }
+
+    // Update the "My Stop" card UI
+    function updateMyStopCard() {
+      const card = document.getElementById('myStopCard');
+      const nameEl = document.getElementById('myStopName');
+      const statusEl = document.getElementById('myStopStatus');
+      const clearBtn = document.getElementById('myStopClear');
+
+      if (myStopState.stopName) {
+        card.classList.remove('no-stop');
+        nameEl.textContent = myStopState.stopName;
+        clearBtn.style.display = 'block';
+        // Status will be updated by checkMyStopNotifications
+        statusEl.textContent = 'Waiting for bus...';
+      } else {
+        card.classList.add('no-stop');
+        nameEl.textContent = 'Tap 🔔 on a stop to get notified';
+        statusEl.textContent = '';
+        clearBtn.style.display = 'none';
+      }
+    }
+
+    // Play notification sound
+    function playNotificationSound(type) {
+      try {
+        // Create audio context for notification sound
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (type === 'arrived') {
+          // Three beeps for arrival
+          oscillator.frequency.value = 880;
+          gainNode.gain.value = 0.3;
+          oscillator.start();
+          setTimeout(() => oscillator.stop(), 600);
+        } else if (type === '1away') {
+          // Two beeps for 1 stop away
+          oscillator.frequency.value = 660;
+          gainNode.gain.value = 0.2;
+          oscillator.start();
+          setTimeout(() => oscillator.stop(), 400);
+        } else {
+          // One beep for 2 stops away
+          oscillator.frequency.value = 440;
+          gainNode.gain.value = 0.15;
+          oscillator.start();
+          setTimeout(() => oscillator.stop(), 200);
+        }
+      } catch (e) {
+        console.log('Could not play sound:', e);
+      }
+    }
+
+    // Send browser notification
+    function sendNotification(title, body, tag) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, tag, icon: '🚌' });
+      }
+    }
+
+    // Check and send notifications for selected stop
+    function checkMyStopNotifications(status, stops) {
+      if (!myStopState.stopName || !status || !stops || stops.length === 0) {
+        return;
+      }
+
+      const routeDistances = calculateRouteDistances(stops);
+      const busPosition = calculateBusPosition(status.latitude, status.longitude, stops, routeDistances);
+      const busDistance = (busPosition.percentage / 100) * (routeDistances[routeDistances.length - 1] || 1);
+
+      // Find which stop the bus has passed (bus is AT or past this stop index)
+      let busAtStopIndex = 0;
+      for (let i = 0; i < routeDistances.length; i++) {
+        if (routeDistances[i] <= busDistance) {
+          busAtStopIndex = i;
+        }
+      }
+
+      const myStopIndex = myStopState.stopIndex;
+      const stopsAway = myStopIndex - busAtStopIndex;
+
+      // Update status text
+      const statusEl = document.getElementById('myStopStatus');
+      if (stopsAway <= 0) {
+        statusEl.textContent = '✅ Bus has arrived or passed';
+        statusEl.style.color = '#4ade80';
+      } else if (stopsAway === 1) {
+        statusEl.textContent = '🔔 1 stop away - Get ready!';
+        statusEl.style.color = '#fbbf24';
+      } else if (stopsAway === 2) {
+        statusEl.textContent = '📍 2 stops away';
+        statusEl.style.color = '#60a5fa';
+      } else {
+        statusEl.textContent = `📍 ${stopsAway} stops away`;
+        statusEl.style.color = '#60a5fa';
+      }
+
+      // Send notifications
+      if (stopsAway === 2 && !myStopState.notified2Away) {
+        myStopState.notified2Away = true;
+        sendNotification(
+          '🚌 Bus is 2 stops away',
+          `The bus is 2 stops away from ${myStopState.stopName}. Start getting ready!`,
+          'my-stop-2away'
+        );
+        playNotificationSound('2away');
+      }
+
+      if (stopsAway === 1 && !myStopState.notified1Away) {
+        myStopState.notified1Away = true;
+        sendNotification(
+          '🚌 Bus is approaching!',
+          `The bus is 1 stop away from ${myStopState.stopName}. Head to the stop now!`,
+          'my-stop-1away'
+        );
+        playNotificationSound('1away');
+      }
+
+      if (stopsAway <= 0 && !myStopState.notifiedArrived) {
+        myStopState.notifiedArrived = true;
+        sendNotification(
+          '🚌 Bus has arrived!',
+          `The bus has arrived at ${myStopState.stopName}!`,
+          'my-stop-arrived'
+        );
+        playNotificationSound('arrived');
+      }
+    }
     
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get("code");
@@ -439,6 +769,9 @@
 
     function initializeApp() {
       if (!busNumber) return;
+      
+      // Load saved "my stop" selection
+      loadMyStop();
       
       // Initialize WebSocket and start refresh
       refresh();
@@ -638,8 +971,13 @@
         else if (stop.status === 'arrived') etaText = 'Arrived';
         else if (stop.eta) etaText = fmtTime(stop.eta);
 
+        // Check if this stop is the selected "my stop"
+        const isMyStop = myStopState.stopName === stop.stop_name;
+        const selectedClass = isMyStop ? 'stop-row-selected' : '';
+        const bellActive = isMyStop ? 'active' : '';
+
         html += `
-          <div class="timeline-preview-stop" style="top: ${stopTop}px;">
+          <div class="timeline-preview-stop ${selectedClass}" style="top: ${stopTop}px;">
             <div class="${dotClass}" style="background: ${isFirst ? '#16a34a' : isLast ? '#dc2626' : '#2563eb'};"></div>
             <div class="stop-content">
               <span class="stop-name timeline-preview-stop-name">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</span>
@@ -652,6 +990,9 @@
                 <span class="label">ETA</span>
                 <span class="val ${stop.status}">${etaText}</span>
               </div>
+              <button class="notify-btn ${bellActive}" onclick="selectMyStop('${stop.stop_name.replace(/'/g, "\\'")}', ${idx})" title="Notify me when bus approaches this stop">
+                ${isMyStop ? '🔔' : '🔕'}
+              </button>
             </div>
           </div>
         `;
@@ -725,11 +1066,11 @@
       const routeDistances = calculateRouteDistances(stops);
       const busPosition = calculateBusPosition(status.latitude, status.longitude, stops, routeDistances);
       
-      // If bus is at or past the final stop (within 1km)
+      // If bus is at or past the final stop (within 0.5km / 500 meters)
       const finalStopDistance = routeDistances[routeDistances.length - 1] || 0;
       const busDistance = (busPosition.percentage / 100) * finalStopDistance;
       
-      if (busDistance >= finalStopDistance - 1) {
+      if (busDistance >= finalStopDistance - 0.5) {
         return true;
       }
       return false;
@@ -739,28 +1080,38 @@
       const statusTextEl = document.getElementById("statusText");
       const statusCard = document.getElementById("currentStatus");
 
+      // Check if bus is not tracking (no status OR last seen > 5 minutes ago)
+      const NOT_TRACKING_THRESHOLD_SECONDS = 300; // 5 minutes
+      const isNotTracking = !status || (status.last_seen_seconds > NOT_TRACKING_THRESHOLD_SECONDS);
+
       if (status) {
         statusTextEl.textContent = `Last seen ${fmtLastSeen(status.last_seen_seconds)}`;
 
-        // Check route completion
-        const isCompleted = checkRouteCompletion(status, stops || currentStops);
-        if (isCompleted) {
-          statusCard.textContent = `✅ Route Completed - Bus has reached final stop`;
+        if (isNotTracking) {
+          // Bus hasn't sent location in over 5 minutes
+          statusCard.textContent = "⚠️ Bus not tracking - No updates in last 5 minutes";
         } else {
-          const nextStopName = status.next_stop || "—";
-          const nextStop = (stops || currentStops || []).find(s => s.stop_name === nextStopName);
-          const etaText = nextStop ? fmtTime(nextStop.eta) : "—";
-          statusCard.innerHTML = `
-            <div><strong>Current stop:</strong> ${status.current_stop || "—"}</div>
-            <div><strong>Next stop:</strong> ${nextStopName} · ETA ${etaText}</div>
-          `;
+          // Check route completion
+          const isCompleted = checkRouteCompletion(status, stops || currentStops);
+          if (isCompleted) {
+            statusCard.textContent = `✅ Route Completed - Bus has reached final stop`;
+          } else {
+            const nextStopName = status.next_stop || "—";
+            const nextStop = (stops || currentStops || []).find(s => s.stop_name === nextStopName);
+            const etaText = nextStop ? fmtTime(nextStop.eta) : "—";
+            statusCard.innerHTML = `
+              <div><strong>Current stop:</strong> ${status.current_stop || "—"}</div>
+              <div><strong>Next stop:</strong> ${nextStopName} · ETA ${etaText}</div>
+            `;
+          }
         }
 
         currentStatus = status;
 
-        // Check for approaching stops and send notifications
-        if (stops || currentStops.length > 0) {
-          checkApproachingStop(status, stops || currentStops);
+        // Check for approaching stops and send notifications (only if actively tracking)
+        if (!isNotTracking && (stops || currentStops.length > 0)) {
+          // Check "my stop" notifications (2 stops away, 1 stop away, arrived)
+          checkMyStopNotifications(status, stops || currentStops);
         }
       } else {
         statusTextEl.textContent = "Last seen —";

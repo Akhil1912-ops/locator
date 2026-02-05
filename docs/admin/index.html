@@ -543,17 +543,6 @@
                     <div class="loading">Loading buses...</div>
                 </div>
             </div>
-
-            <!-- Active Drivers -->
-            <div class="section">
-                <div class="section-header">
-                    <h2>Active Drivers</h2>
-                    <button class="refresh-btn btn-secondary btn-sm" onclick="loadActiveDrivers()">🔄 Refresh</button>
-                </div>
-                <div id="activeDriversTable">
-                    <div class="loading">Loading active drivers...</div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -644,15 +633,20 @@
 
     <!-- Monitor Bus Modal -->
     <div class="modal" id="monitorModal">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h2 id="monitorModalTitle">Monitor Bus</h2>
-                <button class="close-btn" onclick="closeModal('monitorModal')">&times;</button>
+        <div class="modal-content large" style="background: #0f172a; max-width: 600px;">
+            <div class="modal-header" style="background: #1e293b; border-bottom: 1px solid #334155;">
+                <div>
+                    <h2 id="monitorModalTitle" style="color: #fff; font-size: 18px; margin-bottom: 4px;">Monitor Bus</h2>
+                    <div id="monitorLastSeen" style="font-size: 14px; color: #94a3b8;">Last seen —</div>
+                </div>
+                <button class="close-btn" onclick="closeModal('monitorModal')" style="color: #fff;">&times;</button>
             </div>
             <div id="monitorModalError" class="error" style="display: none;"></div>
-            <div id="monitorTimeline"
-                style="background: #1e293b; border-radius: 8px; padding: 20px; min-height: 500px;">
-                <div class="loading">Loading bus status...</div>
+            <div id="monitorStatusCard" style="background: #1e293b; border-radius: 8px; padding: 12px 16px; margin: 16px; border: 1px solid #334155; color: #fff;">
+                Loading...
+            </div>
+            <div id="monitorTimeline" style="background: #1e293b; border-radius: 8px; padding: 16px; margin: 0 16px 16px 16px; min-height: 400px; border: 1px solid #334155;">
+                <div class="loading" style="color: #94a3b8;">Loading bus status...</div>
             </div>
         </div>
     </div>
@@ -811,6 +805,7 @@
 
         function logout() {
             adminPassword = '';
+            sessionStorage.removeItem('adminPassword');
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('dashboard').classList.remove('active');
             document.getElementById('headerActions').style.display = 'none';
@@ -923,7 +918,8 @@
 
                 if (!statsRes.ok) {
                     if (statsRes.status === 401) {
-                        adminPassword = ''; // Clear password on failure
+                        adminPassword = '';
+                        sessionStorage.removeItem('adminPassword');
                         showError('loginError', 'Invalid admin password');
                         throw new Error('Invalid admin password');
                     }
@@ -939,20 +935,16 @@
                 document.getElementById('dashboard').classList.add('active');
                 document.getElementById('headerActions').style.display = 'flex';
 
+                sessionStorage.setItem('adminPassword', adminPassword);
+
                 await Promise.all([
                     loadStats(),
-                    loadBuses(),
-                    loadActiveDrivers()
+                    loadBuses()
                 ]);
-
-                // Auto-refresh active drivers every 30 seconds
-                if (autoRefreshInterval) {
-                    clearInterval(autoRefreshInterval);
-                }
-                autoRefreshInterval = setInterval(loadActiveDrivers, 30000);
             } catch (err) {
                 console.error('Login error:', err);
-                adminPassword = ''; // Clear password on failure
+                adminPassword = '';
+                sessionStorage.removeItem('adminPassword');
                 throw err; // Re-throw to be caught by login() function
             }
         }
@@ -960,8 +952,7 @@
         async function refreshAll() {
             await Promise.all([
                 loadStats(),
-                loadBuses(),
-                loadActiveDrivers()
+                loadBuses()
             ]);
         }
 
@@ -1022,13 +1013,14 @@
                 return;
             }
 
-            let html = '<table><thead><tr><th>Bus Number</th><th>Route Name</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            let html = '<table><thead><tr><th>Bus Number</th><th>Route Name</th><th>Status</th><th>Tracking</th><th>Actions</th></tr></thead><tbody>';
             filtered.forEach(bus => {
                 html += `
                     <tr>
                         <td><strong>${bus.bus_number}</strong></td>
                         <td>${bus.route_name || '—'}</td>
                         <td><span class="badge ${bus.is_active ? 'badge-active' : 'badge-inactive'}">${bus.is_active ? 'Active' : 'Inactive'}</span></td>
+                        <td><span class="badge ${bus.is_tracking ? 'badge-active' : 'badge-inactive'}">${bus.is_tracking ? 'Tracking' : 'Not tracking'}</span></td>
                         <td class="actions">
                             <button class="btn-sm" onclick="monitorBus('${bus.bus_number}')">Monitor</button>
                             <button class="btn-sm" onclick="getTrackingLink('${bus.bus_number}')">Get Link</button>
@@ -1041,38 +1033,6 @@
             });
             html += '</tbody></table>';
             document.getElementById('busesTable').innerHTML = html;
-        }
-
-        async function loadActiveDrivers() {
-            try {
-                const res = await fetch(`${API_BASE}/admin/active-drivers`, {
-                    headers: getHeaders()
-                });
-                const drivers = await res.json();
-
-                if (drivers.length === 0) {
-                    document.getElementById('activeDriversTable').innerHTML = '<p>No active drivers.</p>';
-                    return;
-                }
-
-                let html = '<table><thead><tr><th>Bus Number</th><th>Started At (IST)</th><th>Last Location</th><th>Last Update (IST)</th></tr></thead><tbody>';
-                drivers.forEach(driver => {
-                    const lastLoc = driver.last_location;
-                    html += `
-                        <tr>
-                            <td><strong>${driver.bus_number}</strong></td>
-                            <td>${formatDateTimeIST(driver.started_at)}</td>
-                            <td>${lastLoc ? `${lastLoc.latitude.toFixed(4)}, ${lastLoc.longitude.toFixed(4)}` : '—'}</td>
-                            <td>${lastLoc ? formatTimeIST(lastLoc.recorded_at) : '—'}</td>
-                        </tr>
-                    `;
-                });
-                html += '</tbody></table>';
-                document.getElementById('activeDriversTable').innerHTML = html;
-            } catch (err) {
-                console.error('Error loading drivers:', err);
-                document.getElementById('activeDriversTable').innerHTML = '<p class="error">Failed to load active drivers.</p>';
-            }
         }
 
         function showAddBusModal() {
@@ -2089,7 +2049,7 @@
                         throw new Error(error.detail || 'Failed to update stop');
                     }
                 } else {
-                    // Create stop
+                    // Create stop - first ensure route exists
                     const params = new URLSearchParams({
                         stop_name: stopName,
                         latitude: lat.toString(),
@@ -2103,13 +2063,33 @@
                     console.log('API URL:', `${API_BASE}/admin/buses/${currentBusNumber}/stops`);
                     console.log('Headers:', getHeaders());
 
-                    const res = await fetch(`${API_BASE}/admin/buses/${currentBusNumber}/stops?${params}`, {
+                    let res = await fetch(`${API_BASE}/admin/buses/${currentBusNumber}/stops?${params}`, {
                         method: 'POST',
                         headers: getHeaders()
                     });
 
                     console.log('Response status:', res.status);
                     console.log('Response ok:', res.ok);
+
+                    // If 404 (route not found), auto-create the route and retry
+                    if (res.status === 404) {
+                        console.log('Route not found, auto-creating route...');
+                        const routeName = document.getElementById('routeName').value.trim() || `Route for Bus ${currentBusNumber}`;
+                        const routeParams = new URLSearchParams({ route_name: routeName });
+                        const routeRes = await fetch(`${API_BASE}/admin/buses/${currentBusNumber}/route?${routeParams}`, {
+                            method: 'POST',
+                            headers: getHeaders()
+                        });
+                        if (!routeRes.ok) {
+                            throw new Error('Failed to create route automatically. Please create route first.');
+                        }
+                        console.log('Route created, retrying stop creation...');
+                        // Retry adding the stop
+                        res = await fetch(`${API_BASE}/admin/buses/${currentBusNumber}/stops?${params}`, {
+                            method: 'POST',
+                            headers: getHeaders()
+                        });
+                    }
 
                     if (!res.ok) {
                         const errorText = await res.text();
@@ -2303,6 +2283,10 @@
 
         async function loadMonitorTimeline(busNumber) {
             const container = document.getElementById('monitorTimeline');
+            const statusCard = document.getElementById('monitorStatusCard');
+            const lastSeenEl = document.getElementById('monitorLastSeen');
+            const NOT_TRACKING_THRESHOLD_SECONDS = 300; // 5 minutes
+
             try {
                 // Try to get stops first (this should work if route is set up)
                 const stopsRes = await fetch(`${API_BASE}/passenger/bus/${busNumber}/stops`);
@@ -2325,28 +2309,58 @@
                     console.log('Could not fetch bus status:', e);
                 }
 
+                // Update last seen
+                if (status && status.last_seen_seconds !== undefined) {
+                    const mins = Math.floor(status.last_seen_seconds / 60);
+                    const secs = status.last_seen_seconds % 60;
+                    lastSeenEl.textContent = `Last seen ${mins}m ${secs}s ago`;
+                } else {
+                    lastSeenEl.textContent = 'Last seen —';
+                }
+
+                // Check tracking status
+                const isNotTracking = !status || (status.last_seen_seconds > NOT_TRACKING_THRESHOLD_SECONDS);
+
                 if (stops.length === 0) {
-                    container.innerHTML = '<div class="loading" style="padding: 40px; text-align: center; color: #94a3b8;">No stops available for this bus. Please configure the route first.</div>';
+                    statusCard.innerHTML = '⚠️ No stops configured for this bus.';
+                    container.innerHTML = '<div style="padding: 40px; text-align: center; color: #94a3b8;">No stops available. Please configure the route first.</div>';
                     return;
                 }
 
-                // If bus hasn't started tracking, show helpful message
-                if (!status || !status.latitude || !status.longitude) {
-                    container.innerHTML = `
-                        <div style="padding: 40px; text-align: center; color: #94a3b8;">
-                            <div style="font-size: 18px; margin-bottom: 12px;">📍 Bus Not Tracking Yet</div>
-                            <div style="font-size: 14px; margin-bottom: 20px;">The bus hasn't started sending location updates. Once the driver logs in and starts tracking, the real-time position will appear here.</div>
-                            <div style="font-size: 12px; color: #64748b;">Route configured with ${stops.length} stops</div>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const routeDistances = calculateRouteDistances(stops);
+                // Check route completion (within 0.5km of final stop)
+                let isCompleted = false;
                 let busPosition = { percentage: 0, segmentIndex: 0 };
+                const routeDistances = calculateRouteDistances(stops);
 
                 if (status && status.latitude && status.longitude) {
                     busPosition = calculateBusPosition(status.latitude, status.longitude, stops, routeDistances);
+                    const finalStopDistance = routeDistances[routeDistances.length - 1] || 0;
+                    const busDistance = (busPosition.percentage / 100) * finalStopDistance;
+                    if (busDistance >= finalStopDistance - 0.5) {
+                        isCompleted = true;
+                    }
+                }
+
+                // Update status card
+                if (!status || !status.latitude || !status.longitude) {
+                    statusCard.innerHTML = '📍 Bus not tracking yet.';
+                } else if (isNotTracking) {
+                    statusCard.innerHTML = '⚠️ Bus not tracking - No updates in last 5 minutes';
+                } else if (isCompleted) {
+                    statusCard.innerHTML = '✅ Route Completed - Bus has reached final stop';
+                } else {
+                    const nextStopName = status.next_stop || '—';
+                    const nextStop = stops.find(s => s.stop_name === nextStopName);
+                    const etaText = nextStop && nextStop.eta ? fmtTime(nextStop.eta) : '—';
+                    statusCard.innerHTML = `
+                        <div><strong>Current stop:</strong> ${status.current_stop || '—'}</div>
+                        <div><strong>Next stop:</strong> ${nextStopName} · ETA ${etaText}</div>
+                    `;
+                }
+
+                // If bus hasn't started tracking, show helpful message but still render timeline
+                if (!status || !status.latitude || !status.longitude) {
+                    // Show timeline without bus marker
                 }
 
                 const busDistance = (busPosition.percentage / 100) * (routeDistances[routeDistances.length - 1] || 1);
@@ -2357,62 +2371,63 @@
                     }
                 }
 
-                const totalHeight = Math.max(500, stops.length * 80);
-                container.style.minHeight = `${totalHeight}px`;
+                const minStopSpacingPx = 90;
+                const stopHeight = 60;
+                const totalHeight = Math.max(400, (stops.length - 1) * minStopSpacingPx + stopHeight);
+                const availableHeight = stops.length > 1 ? (stops.length - 1) * minStopSpacingPx : 0;
+
+                // Get start time for header
+                const startTime = stops[0]?.scheduled_time || null;
 
                 let html = `
-                    <div style="margin-bottom: 16px; padding: 12px; background: #0f172a; border-radius: 6px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-weight: 600; margin-bottom: 4px;">Bus ${busNumber}</div>
-                                <div style="font-size: 12px; color: #94a3b8;">
-                                    Status: ${status ? (status.status || 'unknown') : 'not tracking'} · 
-                                    Delay: ${status ? fmtDelay(status.running_delay_minutes || 0) : '—'} · 
-                                    Last seen: ${status ? Math.floor((status.last_seen_seconds || 0) / 60) + 'm ago' : 'never'}
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 12px; color: #94a3b8;">Current Stop</div>
-                                <div style="font-weight: 600;">${status ? (status.current_stop || '—') : '—'}</div>
-                            </div>
-                        </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #334155;">
+                        <h3 style="font-size: 14px; color: #94a3b8; font-weight: 500;">Route Timeline Preview</h3>
+                        <span style="font-size: 12px; color: #94a3b8;">${startTime ? 'Start Time: ' + fmtTime(startTime) + ' IST' : '⚠️ Start time not set'}</span>
                     </div>
-                    <div style="position: relative; min-height: ${totalHeight}px; padding-left: 60px;">
-                        <div style="position: absolute; left: 20px; top: 0; bottom: 0; width: 3px; background: #2563eb; border-radius: 2px;"></div>
+                    <div style="position: relative; min-height: ${totalHeight}px; padding-left: 60px; padding-bottom: ${stopHeight / 2}px; overflow: visible;">
+                        <div style="position: absolute; left: 20px; top: 0; height: ${availableHeight}px; width: 3px; background: #2563eb; border-radius: 2px;"></div>
                 `;
 
-                if (status && status.latitude && status.longitude) {
-                    const markerSize = 40;
-                    const busTopRaw = (busPosition.percentage / 100) * totalHeight;
-                    const busTop = Math.max(0, Math.min(totalHeight - markerSize, busTopRaw - markerSize / 2));
-                    html += `<div style="position: absolute; left: 20px; top: ${busTop}px; width: ${markerSize}px; height: ${markerSize}px; background: #2563eb; border: 3px solid #1e293b; border-radius: 50%; z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 18px; transform: translateX(-50%);">🚌</div>`;
+                // Bus marker (only if tracking)
+                if (status && status.latitude && status.longitude && !isNotTracking) {
+                    const busTop = (busPosition.percentage / 100) * availableHeight;
+                    html += `
+                        <div style="position: absolute; left: 20px; top: ${busTop}px; width: 40px; height: 40px; background: #2563eb; border: 3px solid #1e293b; border-radius: 50%; z-index: 10; display: flex; align-items: center; justify-content: center; transform: translateX(-50%); transition: top 0.3s ease;">
+                            <span style="font-size: 14px;">🚌</span>
+                        </div>
+                    `;
                 }
 
+                // Render stops
                 stops.forEach((stop, idx) => {
                     const isPassed = idx < passedStops;
                     const isCurrent = idx === passedStops;
+                    const isFirst = idx === 0;
+                    const isLast = idx === stops.length - 1;
                     const distance = routeDistances[idx] || 0;
-                    const stopTop = (idx / Math.max(1, stops.length - 1)) * totalHeight;
+                    const stopTop = stops.length > 1 ? idx * minStopSpacingPx : 0;
+
+                    let etaText = '—';
+                    if (stop.status === 'at_stop') etaText = 'At stop';
+                    else if (stop.status === 'arrived') etaText = 'Arrived';
+                    else if (stop.eta) etaText = fmtTime(stop.eta);
+
+                    const dotColor = isFirst ? '#16a34a' : isLast ? '#dc2626' : (isPassed ? '#16a34a' : isCurrent ? '#fbbf24' : '#2563eb');
+                    const dotShadow = isCurrent ? 'box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2);' : '';
 
                     html += `
                         <div style="position: absolute; top: ${stopTop}px; width: calc(100% - 60px); padding-left: 20px;">
-                            <div style="position: absolute; left: -50px; top: 8px; width: 12px; height: 12px; background: ${isPassed ? '#16a34a' : isCurrent ? '#fbbf24' : '#2563eb'}; border: 3px solid #1e293b; border-radius: 50%; z-index: 2; ${isCurrent ? 'box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2);' : ''}"></div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; align-items: start;">
-                                <div>
-                                    <div style="font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #fff;">${stop.stop_name}</div>
-                                    <div style="font-size: 12px; color: #94a3b8;">${distance.toFixed(1)} km</div>
+                            <div style="position: absolute; left: -50px; top: 8px; width: 12px; height: 12px; background: ${dotColor}; border: 3px solid #1e293b; border-radius: 50%; z-index: 2; ${dotShadow}"></div>
+                            <div style="display: grid; grid-template-columns: 1fr auto auto; grid-template-rows: auto auto; gap: 2px 16px; align-items: center;">
+                                <span style="grid-row: 1; grid-column: 1; font-size: 14px; font-weight: 600; color: #fff;">${stop.stop_name} ${isFirst ? '(Start)' : isLast ? '(End)' : ''}</span>
+                                <span style="grid-row: 2; grid-column: 1; font-size: 11px; color: #94a3b8;">${distance.toFixed(1)} km</span>
+                                <div style="grid-row: 1 / 3; grid-column: 2; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                                    <span style="display: block; font-size: 10px; color: #94a3b8; margin-bottom: 2px;">Scheduled</span>
+                                    <span style="display: block; font-size: 13px; font-weight: 600; color: #fff;">${fmtTime(stop.scheduled_time)}</span>
                                 </div>
-                                <div style="text-align: center;">
-                                    <div style="font-size: 11px; color: #94a3b8; margin-bottom: 2px;">Scheduled</div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #fff;">${fmtTime(stop.scheduled_time)}</div>
-                                </div>
-                                <div style="text-align: center;">
-                                    <div style="font-size: 11px; color: #94a3b8; margin-bottom: 2px;">Actual arrived</div>
-                                    <div style="font-size: 13px; font-weight: 600; color: #fff;">${stop.actual_arrived_at ? fmtTime(stop.actual_arrived_at) : '—'}</div>
-                                </div>
-                                <div style="text-align: center;">
-                                    <div style="font-size: 11px; color: #94a3b8; margin-bottom: 2px;">ETA</div>
-                                    <div style="font-size: 13px; font-weight: 600; color: ${stop.status === 'delayed' ? '#f87171' : stop.status === 'on_time' ? '#4ade80' : stop.status === 'at_stop' ? '#fbbf24' : '#fff'};">${stop.status === 'at_stop' ? 'At stop' : stop.status === 'arrived' ? 'Arrived' : stop.eta ? fmtTime(stop.eta) : '—'}</div>
+                                <div style="grid-row: 1 / 3; grid-column: 3; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                                    <span style="display: block; font-size: 10px; color: #94a3b8; margin-bottom: 2px;">ETA</span>
+                                    <span style="display: block; font-size: 13px; font-weight: 600; color: ${stop.status === 'delayed' ? '#f87171' : stop.status === 'on_time' ? '#4ade80' : stop.status === 'at_stop' ? '#fbbf24' : '#fff'};">${etaText}</span>
                                 </div>
                             </div>
                         </div>
@@ -2422,7 +2437,8 @@
                 html += '</div>';
                 container.innerHTML = html;
             } catch (err) {
-                container.innerHTML = `<div class="error">Error loading timeline: ${err.message}</div>`;
+                statusCard.innerHTML = `⚠️ Error loading data`;
+                container.innerHTML = `<div style="color: #f87171; padding: 20px;">Error loading timeline: ${err.message}</div>`;
                 console.error('Monitor timeline error:', err);
             }
         }
@@ -2512,7 +2528,17 @@
             });
         }
 
-        // Run on page load
+        // Run on page load - restore session if password was stored (survives refresh)
+        (function tryRestoreSession() {
+            const stored = sessionStorage.getItem('adminPassword');
+            if (stored) {
+                adminPassword = stored;
+                loadDashboard().catch(function () {
+                    sessionStorage.removeItem('adminPassword');
+                    adminPassword = '';
+                });
+            }
+        })();
         disableNumberInputWheel();
 
         // Also run when modals are opened (for dynamically created inputs)

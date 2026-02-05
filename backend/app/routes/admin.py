@@ -2,12 +2,13 @@ from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, status, Depends, Header, Query, Request, Body
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 import secrets
 import string
 
 from .. import schemas
-from ..deps import get_db
+from ..deps import get_db, get_store
 from ..db_store import DatabaseStore
 from ..models import Bus, Route, Stop, DriverSession, Location, DelayInfo, TrackingCode
 from ..config import settings
@@ -34,23 +35,53 @@ def verify_admin_password(admin_password: str = Header(..., alias="X-Admin-Passw
 
 
 # Bus Management
+TRACKING_THRESHOLD_MINUTES = 2
+
+
+def _tracking_cutoff_utc():
+    """Naive UTC datetime - locations older than this are 'not tracking'."""
+    return (datetime.now(timezone.utc) - timedelta(minutes=TRACKING_THRESHOLD_MINUTES)).replace(tzinfo=None)
+
+
+def _buses_tracking_now(db: Session) -> set:
+    """Set of bus_numbers that have sent a location in the last 5 minutes. Same logic as stats.
+    Uses Python-side cutoff comparison to avoid SQLite datetime quirks across systems."""
+    cutoff = _tracking_cutoff_utc()
+    # Get latest recorded_at per bus (SQL just does MAX - no boundary comparison)
+    rows = db.query(
+        Location.bus_number,
+        func.max(Location.recorded_at).label("max_at"),
+    ).group_by(Location.bus_number).all()
+    result = set()
+    for bus_num, max_at in rows:
+        if max_at is not None:
+            # Compare in Python - normalize to naive for cutoff comparison
+            t = max_at.replace(tzinfo=None) if max_at.tzinfo else max_at
+            if t >= cutoff:
+                result.add(bus_num)
+    return result
+
+
 @router.get("/buses", response_model=List[dict])
 def list_buses(
-    db: Session = Depends(get_db),
+    store: DatabaseStore = Depends(get_store),
     _: bool = Depends(verify_admin_password),
 ):
-    """List all buses"""
-    buses = db.query(Bus).all()
-    return [
-        {
+    """List all buses. is_tracking = true if bus has location in last 5 minutes (same logic as stats)."""
+    buses = store.db.query(Bus).all()
+    tracking_bus_numbers = _buses_tracking_now(store.db)
+    result = []
+    for bus in buses:
+        is_tracking = bus.bus_number in tracking_bus_numbers
+        result.append({
             "bus_number": bus.bus_number,
             "route_name": bus.route_name,
             "start_time": _start_time_to_iso(bus),
             "is_active": bus.is_active,
+            "is_tracking": is_tracking,
             "created_at": bus.created_at.isoformat() if bus.created_at else None,
-        }
-        for bus in buses
-    ]
+        })
+    return result
 
 
 @router.post("/buses", response_model=dict)
@@ -621,11 +652,8 @@ def get_stats(
         except:
             buses_with_routes = 0
         
-        # Count buses currently tracking (sent location in last 5 minutes)
-        five_min_ago = datetime.now(timezone.utc) - timedelta(minutes=5)
-        tracking_buses = db.query(Location.bus_number).filter(
-            Location.recorded_at >= five_min_ago
-        ).distinct().count()
+        # Count buses currently tracking - use same logic as list_buses
+        tracking_buses = len(_buses_tracking_now(db))
         
         return {
             "total_buses": total_buses,
