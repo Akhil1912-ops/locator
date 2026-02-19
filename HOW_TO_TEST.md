@@ -47,8 +47,8 @@ A URL like `https://xxxxx.trycloudflare.com` will appear. **Copy it** — this i
 | Part | URL | Credentials |
 |------|-----|-------------|
 | **Admin Panel** | `https://YOUR_TUNNEL_URL/ui/admin/` | Password: `admin123` |
-| **Passenger Page** | `https://YOUR_TUNNEL_URL/ui/passenger/?bus=123` | No login |
-| **Driver App** | [Download APK](https://github.com/Akhil1912-ops/locator/releases) or build from `driver-app-native/` | Bus: `123` / Password: `password123` |
+| **Passenger Page** | `https://YOUR_TUNNEL_URL/ui/passenger/?bus=222` | No login |
+| **Driver App** | [Download APK](https://github.com/Akhil1912-ops/locator/releases) or build from `driver-app-native/` | Bus: `222` / Password: `password` |
 
 ---
 
@@ -62,7 +62,7 @@ A URL like `https://xxxxx.trycloudflare.com` will appear. **Copy it** — this i
 5. Click **Monitor** on a bus to see live view (similar to passenger page)
 
 ### B. Passenger Page
-1. Open `https://YOUR_TUNNEL_URL/ui/passenger/?bus=123` in browser (or phone)
+1. Open `https://YOUR_TUNNEL_URL/ui/passenger/?bus=222` in browser (or phone)
 2. Initially shows "Bus not tracking yet" (no location data)
 3. **After driver app sends location:** Timeline updates with live position, current/next stop, ETAs
 4. Try **"My Stop"** notifications: tap 🔔 on any stop → get alerted at 2 stops away, 1 stop away, arrived (allow notifications when prompted)
@@ -73,7 +73,7 @@ A URL like `https://xxxxx.trycloudflare.com` will appear. **Copy it** — this i
 2. Install on Android phone (or emulator)
 3. Open app → set **Server URL** = `https://YOUR_TUNNEL_URL` (no trailing slash)
 4. Tap **Save URL & Login**
-5. Enter Bus number: **123**, Password: **password123**
+5. Enter Bus number: **222**, Password: **password**
 6. Tap **Login**
 7. Tap **Start Tracking** — GPS is sent every ~10 seconds
 8. Switch to **Passenger page** (browser) — you should see live bus position updating
@@ -84,8 +84,8 @@ A URL like `https://xxxxx.trycloudflare.com` will appear. **Copy it** — this i
 
 1. Start backend + tunnel
 2. Open **Admin** → login with `admin123` → verify dashboard
-3. Open **Passenger** page `?bus=123` → shows "Bus not tracking"
-4. Open **Driver app** on phone → login `123`/`password123` → **Start Tracking**
+3. Open **Passenger** page `?bus=222` → shows "Bus not tracking"
+4. Open **Driver app** on phone → login `222`/`password` → **Start Tracking**
 5. Refresh **Passenger** page → bus position appears, timeline updates in real time
 6. Tap 🔔 on a stop in Passenger page → enable "My Stop" notifications
 
@@ -96,8 +96,9 @@ A URL like `https://xxxxx.trycloudflare.com` will appear. **Copy it** — this i
 | Role | Credential |
 |------|------------|
 | Admin password | `admin123` |
-| Bus 123 | `123` / `password123` |
-| Bus 456 | `456` / `password456` |
+| Bus 222 (driver app) | `222` / `password` |
+
+
 
 
 ---
