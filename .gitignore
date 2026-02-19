@@ -13,8 +13,8 @@ __pycache__/
 .Python
 *.so
 
-# Backend DB (optional; remove if you want to track seed data)
-# backend/bustracker.db
+# Backend DB (regeneratable via seed_db.py)
+backend/bustracker.db
 
 # Build artifacts and caches
 *.log

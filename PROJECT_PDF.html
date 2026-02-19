@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bus Tracker — Project Overview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      max-width: 1020px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      font-size: 26px;
+    }
+    h1 {
+      font-size: 40px;
+      margin-bottom: 24px;
+      color: #0f172a;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 8px;
+    }
+    h2 {
+      font-size: 28px;
+      margin-top: 28px;
+      margin-bottom: 16px;
+      color: #1e40af;
+    }
+    h3 {
+      font-size: 24px;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      color: #475569;
+      font-weight: 600;
+    }
+    p { margin-bottom: 16px; }
+    ul { margin: 12px 0 16px 40px; }
+    li { margin-bottom: 8px; }
+    .section { margin-bottom: 14px; }
+    .note {
+      background: #f8fafc;
+      border-left: 4px solid #2563eb;
+      padding: 16px 24px;
+      margin: 20px 0;
+      font-size: 24px;
+    }
+    .screenshot-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .screenshot-row img {
+      width: 160px;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .screenshot-row.admin img { width: 320px; }
+    .screenshot-row.passenger img { width: 170px; }
+    .screenshot-row.driver img { width: 155px; }
+    p.screenshot-note {
+      font-size: 24px;
+      color: #64748b;
+      font-style: italic;
+      margin-top: 6px;
+      margin-bottom: 0;
+    }
+    @media print {
+      body { padding: 20px; }
+      .section { page-break-inside: avoid; }
+      .screenshot-row img { width: 140px !important; }
+      .screenshot-row.admin img { width: 280px !important; }
+      .screenshot-row.passenger img { width: 150px !important; }
+      .screenshot-row.driver img { width: 140px !important; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Bus Tracker — Real-Time Bus Location System</h1>
+
+  <div class="section">
+    <h2>Introduction</h2>
+    <p><strong>Bus Tracker</strong> is a real-time bus location system for fleet owners and schools. It has <strong>three main parts</strong>:</p>
+    <ul>
+      <li><strong>Admin Panel</strong> — Web dashboard for fleet/school staff to manage buses, routes, and stops</li>
+      <li><strong>Driver App</strong> — Mobile app for drivers to send live GPS to the server</li>
+      <li><strong>Passenger Page</strong> — Mobile-friendly webpage where passengers/parents see live bus location, ETAs, and enable "My Stop" notifications</li>
+    </ul>
+    <p class="note"><strong>Note:</strong> If buses already have GPS tracker devices installed (e.g. fleet tracking hardware), we can connect directly to those devices and use their location data. In that case, the driver app is not needed — the system can work with existing trackers only.</p>
+  </div>
+
+  <div class="section">
+    <h2>Use Cases</h2>
+    <p><strong>1. Bus Fleet Owners</strong> — Passengers track their bus via link, see when it reaches their stop, reduce "Where is the bus?" calls. Fleet owners manage buses, routes, and share tracking links with passengers.</p>
+    <p><strong>2. School Buses</strong> — Parents see where their child's bus is in real time and get notifications when it's approaching. Reduces parent anxiety, office calls, and children waiting outside for long.</p>
+  </div>
+
+  <div class="section">
+    <h2>1. Admin Panel</h2>
+    <p><strong>What it does:</strong> Add/edit buses, define routes and stops (with locations), set schedules (start time, stop timings), monitor live bus status, generate tracking links to share with passengers.</p>
+    <div class="screenshot-row admin">
+      <img src="assets/overview-images/admin-screenshot-1.png" alt="Admin dashboard — fleet stats and bus list" />
+      <img src="assets/overview-images/admin-screenshot-2.png" alt="Admin — buses and active drivers" />
+      <img src="assets/overview-images/admin-screenshot-3.png" alt="Admin — monitor bus modal" />
+    </div>
+    <h3>Tech</h3>
+    <p>Single-page HTML/CSS/JavaScript. Uses <strong>fetch</strong> for backend REST calls. <strong>Password-protected</strong> — admin enters password at login; stored in sessionStorage and sent as <code>X-Admin-Password</code> header on every request. <strong>Google Maps Places API</strong> (with Maps JavaScript API) for stop location autocomplete — type a place name, pick from suggestions, lat/lng filled automatically. Backend URL auto-detected from page origin; override with <code>?api=URL</code> for tunnel/remote server.</p>
+  </div>
+
+  <div class="section">
+    <h2>2. Driver App</h2>
+    <p><strong>What it does:</strong> Driver logs in with bus number and password, taps "Start Tracking", and the app sends GPS coordinates to the server every ~10 seconds. Runs in background so driver can use the phone normally.</p>
+    <div class="screenshot-row driver">
+      <img src="assets/overview-images/driver-screenshot-1.png" alt="Driver app — Login screen" />
+      <img src="assets/overview-images/driver-screenshot-2.png" alt="Driver app — Tracking active screen" />
+    </div>
+    <h3>Tech</h3>
+    <p><strong>Native Android (Kotlin)</strong>. Uses <strong>Fused Location Provider</strong> for high-accuracy GPS — updates every ~10 s or when moved 25 m. <strong>Foreground service</strong> with persistent notification so tracking continues when app is in background. Login: <code>POST /auth/driver/login</code> returns <code>session_token</code>; location sent via <code>POST /driver/location</code> with <code>X-Session-Token</code> header. Server URL configured on login screen.</p>
+  </div>
+
+  <div class="section">
+    <h2>3. Passenger Page</h2>
+    <p><strong>What it does:</strong> Passengers/parents open a link (shared by fleet/school) and see: live bus status, current/next stop, route timeline with ETAs for each stop, "My Stop" selection with bell icon. When they tap the bell on their stop, they get browser notifications and sound alerts: 2 stops away, 1 stop away, arrived. Selection stored in localStorage so it persists after refresh.</p>
+    <div class="screenshot-row passenger">
+      <img src="assets/overview-images/passenger-screenshot-1.png" alt="Passenger view — Bus status, your stop card, route timeline" />
+      <img src="assets/overview-images/passenger-screenshot-2.png" alt="Passenger view — Live position and upcoming stops with ETAs" />
+    </div>
+    <p class="screenshot-note">Screenshots taken while testing in campus.</p>
+    <h3>Tech</h3>
+    <p>Single-page HTML/CSS/JavaScript. Fetches bus status from <code>GET /passenger/bus/{number}</code> and stops from <code>GET /passenger/bus/{number}/stops</code>. <strong>WebSocket</strong> (<code>/passenger/ws/bus/{number}</code>) pushes live location and delay updates; also polls every 10 s as fallback. <strong>Haversine formula</strong> client-side computes bus position on route and ETAs from stop distances. "My Stop" notifications: <strong>Web Notifications API</strong> + <strong>Web Audio API</strong> for sound. Selection saved in <code>localStorage</code>. Works in any browser — no app install.</p>
+  </div>
+
+  <div class="section">
+    <h2>Backend</h2>
+    <p><strong>Tech:</strong> <strong>FastAPI</strong>, <strong>SQLite</strong> (SQLAlchemy ORM). REST endpoints for admin (buses, routes, stops, tracking codes), passenger (bus status, stops), driver (login, location). <strong>WebSocket</strong> broadcasts location and delay to connected passenger clients when driver sends updates. Tables: buses, routes, stops, locations, driver_sessions, delay_info, stop_arrivals, tracking_codes. CORS enabled. Serves admin and passenger UIs from <code>/ui</code> (docs folder).</p>
+  </div>
+</body>
+</html>

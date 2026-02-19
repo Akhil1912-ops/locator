@@ -1,6 +1,9 @@
 # Bus Tracker MVP (Driver + Passenger)
 
-Plan based on our discussion:
+**How to test:** See [HOW_TO_TEST.md](HOW_TO_TEST.md) for step-by-step instructions to run and demo the app.
+
+---
+Original plan:
 - Android driver app (15s updates) using bus number + password login.
 - Passenger web (per-bus URL) with stop list, ETAs, “last seen”, and a toggleable mini-map.
 - Backend: FastAPI + in-memory store for the prototype; swap to Postgres later.

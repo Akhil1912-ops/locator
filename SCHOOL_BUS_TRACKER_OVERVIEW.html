@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Bus Tracker — Overview for Schools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 24px;
+      color: #0f172a;
+      border-bottom: 2px solid #16a34a;
+      padding-bottom: 12px;
+    }
+    h2 {
+      font-size: 20px;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      color: #15803d;
+    }
+    h3 {
+      font-size: 16px;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      color: #334155;
+    }
+    p { margin-bottom: 12px; }
+    ul { margin: 12px 0 12px 24px; }
+    li { margin-bottom: 6px; }
+    hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 24px 0;
+    }
+    strong { color: #0f172a; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    th {
+      background: #f0fdf4;
+      font-weight: 600;
+    }
+    .parent-screenshots {
+      margin: 20px 0;
+      padding: 16px 0;
+    }
+    .parent-screenshots p.intro {
+      margin-bottom: 16px;
+      color: #475569;
+      font-style: italic;
+    }
+    .parent-screenshots .screenshot-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .parent-screenshots img {
+      max-width: 100%;
+      width: 140px;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .admin-screenshots {
+      margin: 16px 0;
+      padding: 12px 0;
+    }
+    .admin-screenshots p.intro {
+      margin-bottom: 12px;
+      color: #475569;
+      font-style: italic;
+      font-size: 14px;
+    }
+    .admin-screenshots .screenshot-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .admin-screenshots img {
+      max-width: 100%;
+      width: 190px;
+      height: auto;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    p.note {
+      margin: 12px 0;
+      padding: 12px 16px;
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      font-size: 14px;
+      color: #475569;
+    }
+    p.highlight {
+      margin: 12px 0;
+      padding: 12px 16px;
+      background: #fefce8;
+      border-left: 4px solid #eab308;
+      font-size: 14px;
+      color: #475569;
+    }
+    @media print {
+      body { padding: 20px; }
+      h1 { font-size: 24px; }
+      h2 { font-size: 18px; margin-top: 24px; }
+      h3 { font-size: 15px; margin-top: 16px; }
+      .parent-screenshots img { max-width: 100px; }
+      .admin-screenshots img { max-width: 140px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>School Bus Tracker — Overview for Schools</h1>
+
+  <h2>What is School Bus Tracker?</h2>
+  <p><strong>School Bus Tracker</strong> is a system designed to give parents peace of mind by letting them see exactly where their child's school bus is — in real time.</p>
+  <ul>
+    <li><strong>Parents can see the live location of the school bus</strong> on their phone.</li>
+    <li>The system shows <strong>when the bus will reach their stop</strong>, so children don't have to wait outside for long.</li>
+    <li>Parents get <strong>automatic notifications</strong> when the bus is approaching — 2 stops away, 1 stop away, and when it arrives.</li>
+    <li>This reduces <strong>anxiety, confusion, and repeated calls to the school</strong> asking "Where is the bus?"</li>
+    <li>It improves <strong>parent satisfaction and trust</strong> in the school's transport service.</li>
+  </ul>
+  <p><strong>For the school:</strong></p>
+  <ul>
+    <li>Fewer complaint calls from parents</li>
+    <li>Better safety image and professionalism</li>
+    <li>Complete visibility over all school buses</li>
+  </ul>
+
+  <div class="parent-screenshots">
+    <p class="intro"><strong>Parent interface preview —</strong> This is what parents see on their phone when tracking their child's bus. Notice the "Your stop" card where parents can select their stop and get notified automatically when the bus approaches.</p>
+    <div class="screenshot-row">
+      <img src="assets/overview-images/passenger-screenshot-1.png" alt="Parent tracking view — Bus status, your stop notification card, and route timeline" />
+      <img src="assets/overview-images/passenger-screenshot-2.png" alt="Parent tracking view — Live bus position and upcoming stops with ETAs" />
+    </div>
+  </div>
+
+  <hr>
+
+  <h2>The problem it solves</h2>
+  <p>Every day, schools deal with:</p>
+  <ul>
+    <li><strong>Parents calling repeatedly:</strong> "Where is the bus? My child has been waiting for 20 minutes!"</li>
+    <li><strong>Children waiting in heat, rain, or cold:</strong> No way for parents to know when to send their child to the stop.</li>
+    <li><strong>Safety concerns:</strong> Parents worry when the bus is late — is it stuck in traffic? Did something happen?</li>
+    <li><strong>Staff time wasted:</strong> Office staff spend time answering "Where is the bus?" calls instead of other work.</li>
+    <li><strong>Reputation:</strong> Parents compare schools, and modern parents expect digital solutions.</li>
+  </ul>
+  <p>School Bus Tracker solves this by giving parents <strong>live tracking, automatic ETAs, and smart notifications</strong> — all without downloading any app.</p>
+
+  <hr>
+
+  <h2>Who uses the system?</h2>
+  <p>There are <strong>three parts</strong>, each for a different role:</p>
+
+  <h3>1. Admin Panel — For school transport coordinator</h3>
+  <p>A web dashboard where the school:</p>
+  <ul>
+    <li><strong>Adds and manages buses</strong> — Register each school bus with a number and password.</li>
+    <li><strong>Defines routes</strong> — Set pickup/drop stops with locations (e.g. "Near Big Bazaar", "Sharma Colony Gate").</li>
+    <li><strong>Sets schedules</strong> — Configure the morning pickup time and afternoon drop time for each stop.</li>
+    <li><strong>Monitors live</strong> — See where each bus is and whether it's running on schedule.</li>
+    <li><strong>Shares tracking links</strong> — Generate one link per bus to share with parents of children on that bus.</li>
+  </ul>
+  <p>The transport coordinator or office staff uses this on a computer to manage everything.</p>
+
+  <div class="admin-screenshots">
+    <p class="intro"><strong>Admin panel interface —</strong> Screenshots of the admin dashboard: fleet overview, bus management, live monitoring, bus settings, and route/stops configuration.</p>
+    <div class="screenshot-row">
+      <img src="assets/overview-images/admin-screenshot-1.png" alt="Admin dashboard — fleet stats and bus list" />
+      <img src="assets/overview-images/admin-screenshot-2.png" alt="Admin — buses and active drivers" />
+      <img src="assets/overview-images/admin-screenshot-3.png" alt="Admin — monitor bus modal" />
+      <img src="assets/overview-images/admin-screenshot-4.png" alt="Admin — edit bus settings" />
+      <img src="assets/overview-images/admin-screenshot-5.png" alt="Admin — manage stops" />
+    </div>
+  </div>
+
+  <h3>2. Driver App — For your bus drivers</h3>
+  <p>A simple Android app that each driver uses:</p>
+  <ul>
+    <li><strong>Login</strong> — Uses the bus number and password set by the school.</li>
+    <li><strong>Start tracking</strong> — One tap to begin sending live GPS.</li>
+    <li><strong>Runs in background</strong> — Works even when the screen is off or driver uses other apps.</li>
+    <li><strong>Minimal effort</strong> — Driver just starts it before the trip; no other action needed.</li>
+  </ul>
+  <p>Drivers only need to tap "Start Tracking" before leaving school or starting the pickup route.</p>
+  <p class="note"><strong>Note:</strong> If your school buses already have GPS tracker devices installed (many transport vendors provide these), we can connect directly to those devices. In that case, drivers don't need to use any app at all — the system will pull location from the existing tracker.</p>
+
+  <h3>3. Parent Tracking Page — For parents</h3>
+  <p>A mobile-friendly webpage that parents open on their phone:</p>
+  <ul>
+    <li><strong>Track the bus</strong> — Open the link shared by the school (works in any browser, no app download).</li>
+    <li><strong>See the route timeline</strong> — All stops in order with scheduled time and live ETA.</li>
+    <li><strong>Select "My Stop"</strong> — Tap the bell icon next to their stop to enable notifications.</li>
+    <li><strong>Get automatic alerts</strong> — Notified when bus is 2 stops away, 1 stop away, and when it arrives.</li>
+    <li><strong>Plan accordingly</strong> — Parents know exactly when to send their child to the stop.</li>
+  </ul>
+  <p class="highlight"><strong>Key feature:</strong> The "My Stop" notification means parents don't need to keep checking their phone. They select their stop once, and the system alerts them automatically when the bus is approaching. Children spend less time waiting outside.</p>
+
+  <hr>
+
+  <h2>How it works (in simple terms)</h2>
+  <ol style="margin-left: 24px;">
+    <li><strong>School sets up buses and routes</strong> in the admin panel — bus numbers, stop names, and timings.</li>
+    <li><strong>Driver starts the app</strong> before leaving — GPS is sent to the server every few seconds.</li>
+    <li><strong>The system calculates</strong> where the bus is, which stop it passed, and when it will reach upcoming stops.</li>
+    <li><strong>Parents open the tracking link</strong> — they see live location and get notified when the bus approaches their stop.</li>
+  </ol>
+  <p>Parents just need to click a link the school shares (via WhatsApp group, school app, or SMS). No app download required.</p>
+
+  <hr>
+
+  <h2>A typical morning with School Bus Tracker</h2>
+  <table>
+    <thead>
+      <tr><th>Time</th><th>What happens</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>6:30 AM</strong></td><td>Driver starts the app and begins the pickup route.</td></tr>
+      <tr><td><strong>6:45 AM</strong></td><td>Mrs. Sharma gets a notification: "Bus is 2 stops away — get ready!"</td></tr>
+      <tr><td><strong>6:48 AM</strong></td><td>Another notification: "Bus is 1 stop away — head to the stop now!"</td></tr>
+      <tr><td><strong>6:50 AM</strong></td><td>Bus arrives. Child boards safely. Parent didn't have to wait or worry.</td></tr>
+      <tr><td><strong>7:30 AM</strong></td><td>Bus reaches school. System shows "Route Completed".</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>Benefits for your school</h2>
+  <table>
+    <thead>
+      <tr><th>Benefit</th><th>How it helps</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Fewer calls</strong></td><td>Parents see live ETAs instead of calling the school or driver.</td></tr>
+      <tr><td><strong>Happier parents</strong></td><td>Real-time tracking reduces anxiety and builds trust.</td></tr>
+      <tr><td><strong>Child safety</strong></td><td>Children spend less time waiting outside; parents know exactly when bus arrives.</td></tr>
+      <tr><td><strong>Modern image</strong></td><td>Shows that your school uses technology for safety and convenience.</td></tr>
+      <tr><td><strong>Staff time saved</strong></td><td>Office staff no longer tied up answering "Where is the bus?" calls.</td></tr>
+      <tr><td><strong>Low cost</strong></td><td>Uses existing smartphones; no expensive hardware needed.</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <h2>Common questions</h2>
+
+  <h3>Do parents need to download an app?</h3>
+  <p>No. The tracking page works in any web browser — Chrome, Safari, etc. Parents just click the link.</p>
+
+  <h3>What if the driver forgets to start tracking?</h3>
+  <p>The admin dashboard shows which buses are "Tracking" and which are "Not tracking". School staff can call the driver if needed.</p>
+
+  <h3>Can we use this for both morning pickup and afternoon drop?</h3>
+  <p>Yes. The same system works for any number of trips per day.</p>
+
+  <h3>What about student privacy?</h3>
+  <p>The system tracks the bus, not individual students. Parents only see bus location, not which students are on board.</p>
+
+  <h3>Can different parents see different buses?</h3>
+  <p>Yes. Each bus has its own tracking link. Share the correct link with parents whose children are on that bus.</p>
+
+  <hr>
+
+  <h2>Quick summary</h2>
+  <p><strong>School Bus Tracker</strong> gives you:</p>
+  <ul>
+    <li><strong>Admin panel</strong> — Manage buses, routes, and schedules; monitor all buses live; generate tracking links.</li>
+    <li><strong>Driver app</strong> — Simple Android app that sends live GPS (or connect to existing GPS devices).</li>
+    <li><strong>Parent tracking page</strong> — Mobile-friendly page with live ETAs, route timeline, and automatic "My Stop" notifications.</li>
+  </ul>
+  <p>Parents get peace of mind knowing exactly where the bus is. Children spend less time waiting. School staff spend less time answering calls. Everyone wins.</p>
+</body>
+</html>
