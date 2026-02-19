@@ -32,10 +32,3 @@ Serve `passenger/index.html` with any static server (or open in browser). It cal
 ```
 file:///.../passenger/index.html?bus=123
 ```
-
-## Next steps
-- Replace in-memory store with Postgres (Supabase), add tables for buses, routes, stops, driver_sessions, locations.
-- Implement WebSocket broadcast for real-time updates to passengers.
-- Add driver app (React Native) with background location + 15s heartbeat.
-- Replace fake stop coordinates with real route data; add stop-arrival detection and delay calculation.
-
