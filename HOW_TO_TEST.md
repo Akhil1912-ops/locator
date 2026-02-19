@@ -1,6 +1,8 @@
 # How to Test the Bus Tracker Application
 
-This guide helps evaluators/interviewers run and test the project for the vibe coding intern submission.
+This guide helps evaluators/interviewers run and test the project.
+
+**Direct app link (Driver APK):** [Download from GitHub Releases](https://github.com/Akhil1912-ops/locator/releases)
 
 ---
 
@@ -46,7 +48,7 @@ A URL like `https://xxxxx.trycloudflare.com` will appear. **Copy it** — this i
 |------|-----|-------------|
 | **Admin Panel** | `https://YOUR_TUNNEL_URL/ui/admin/` | Password: `admin123` |
 | **Passenger Page** | `https://YOUR_TUNNEL_URL/ui/passenger/?bus=123` | No login |
-| **Driver App** | Install APK, set Server URL = tunnel URL | Bus: `123` / Password: `password123` |
+| **Driver App** | [Download APK](https://github.com/Akhil1912-ops/locator/releases) or build from `driver-app-native/` | Bus: `123` / Password: `password123` |
 
 ---
 
@@ -66,8 +68,8 @@ A URL like `https://xxxxx.trycloudflare.com` will appear. **Copy it** — this i
 4. Try **"My Stop"** notifications: tap 🔔 on any stop → get alerted at 2 stops away, 1 stop away, arrived (allow notifications when prompted)
 
 ### C. Driver App
-1. Build APK: Open `driver-app-native` in Android Studio → **Build → Build APK(s)**  
-   - Or use pre-built APK if provided
+1. **Direct APK download:** [GitHub Releases](https://github.com/Akhil1912-ops/locator/releases) — download `app-debug.apk` if available (no build needed).
+   - **Or build APK:** Open `driver-app-native` in Android Studio → **Build → Build APK(s)**
 2. Install on Android phone (or emulator)
 3. Open app → set **Server URL** = `https://YOUR_TUNNEL_URL` (no trailing slash)
 4. Tap **Save URL & Login**
@@ -96,6 +98,7 @@ A URL like `https://xxxxx.trycloudflare.com` will appear. **Copy it** — this i
 | Admin password | `admin123` |
 | Bus 123 | `123` / `password123` |
 | Bus 456 | `456` / `password456` |
+
 
 ---
 
